@@ -71,3 +71,5 @@ The `.bizvault` binary structure is assembled as follows:
 
 Enterprise Buisness Vault Copyright 2026 Joseph La Follette --ALL RIGHTS RESERVED  
 
+Contact 21cetjoe@gmail.com for corporate licensing rates.
+
