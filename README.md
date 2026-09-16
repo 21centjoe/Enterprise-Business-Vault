@@ -19,7 +19,7 @@
    - Preserves original filenames, file sizes, and **CRC32** checksums to prevent silent data corruption.
 
 3. **Freshness & Integrity Verification Cycle**
-   - Periodic or manual background scans that decrypt assets, recompute CRC32 plaintext checksums, verify authentication tags, and re-encrypt files with fresh IVs (cold-storing).
+   - Periodic or manual background scans that decrypt assets, recompute CRC32 plaintext checksums, verify authentication tags, and re-encrypt files with fresh IVs (cold-storing). Self-healing properties of the CRC32 structure cleans up data and repairs it without 3rd party offline scrutiny or cloud based apps.
    - Configurable freshness thresholds and background scan intervals.
 
 4. **Enterprise Business Suite**
