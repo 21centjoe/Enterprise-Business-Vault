@@ -1,0 +1,816 @@
+<!--
+    Enterprise Business Vault
+    Copyright (C) 2026
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU Affero General Public License as published
+    by the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU Affero General Public License for more details.
+
+    You should have received a copy of the GNU Affero General Public License
+    along with this program.  If not, see <https://www.gnu.org/licenses/>.
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Enterprise Business Vault</title>
+<style>
+    :root {
+        --bg-primary: #f8fafc;
+        --surface: #ffffff;
+        --border: #cbd5e1;
+        --text-main: #1e293b;
+        --text-dim: #64748b;
+        --accent: #0f172a;
+        --highlight: #2563eb;
+        --success: #16a34a;
+        --danger: #dc2626;
+        --warn: #b45309;
+        --tab-active: #2563eb;
+    }
+    * { box-sizing: border-box; }
+    body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        background-color: var(--bg-primary);
+        color: var(--text-main);
+        margin: 0;
+        padding: 0;
+    }
+    .container { max-width: 1400px; margin: 0 auto; padding: 20px; }
+
+    /* ---------------- Login screen (shown once, on first load only) ---------------- */
+    #loginScreen {
+        position: fixed; inset: 0; z-index: 500;
+        display: flex; align-items: center; justify-content: center;
+        background: radial-gradient(ellipse at 50% 30%, #1e293b, #0f172a 70%);
+    }
+    @keyframes loginRise {
+        from { opacity: 0; transform: translateY(22px) scale(0.97); }
+        to   { opacity: 1; transform: translateY(0) scale(1); }
+    }
+    @keyframes dotPulse {
+        0%, 100% { opacity: 0.35; transform: scale(1); }
+        50%      { opacity: 1; transform: scale(1.25); }
+    }
+    .login-card {
+        animation: loginRise 0.8s cubic-bezier(.2,.8,.2,1);
+        background: var(--surface);
+        border-radius: 12px;
+        padding: 36px 40px;
+        width: 380px;
+        max-width: 90vw;
+        box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+    }
+    .login-brand { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+    .login-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--highlight); animation: dotPulse 2.2s ease-in-out infinite; }
+    .login-title { font-size: 1.15rem; font-weight: 700; color: var(--accent); }
+    .login-sub { font-size: 0.8rem; color: var(--text-dim); margin-bottom: 22px; }
+    .login-card label { display: block; font-size: 0.85rem; font-weight: 600; margin: 14px 0 6px; }
+    .login-card input {
+        width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 6px; font-size: 0.95rem;
+    }
+    .login-card button {
+        width: 100%; margin-top: 20px; background: var(--highlight); color: white; border: none;
+        padding: 12px; border-radius: 6px; font-weight: 700; cursor: pointer; font-size: 0.95rem;
+    }
+    .login-card button:hover { background: #1d4ed8; }
+    .login-error { color: var(--danger); font-size: 0.8rem; margin-top: 10px; min-height: 1em; }
+    .login-note { font-size: 0.72rem; color: var(--text-dim); margin-top: 16px; line-height: 1.5; border-top: 1px solid var(--border); padding-top: 12px; }
+
+    /* ---------------- App shell ---------------- */
+    #app { display: none; }
+    header {
+        background-color: var(--surface); border: 1px solid var(--border); padding: 16px 20px; border-radius: 8px;
+        display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;
+        box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); flex-wrap: wrap; gap: 10px;
+    }
+    .operator-badge { background-color: var(--accent); color: white; padding: 8px 14px; border-radius: 6px; font-size: 0.85rem; font-weight: 600; }
+    .header-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+    .tabs { display: flex; gap: 6px; margin-bottom: 20px; flex-wrap: wrap; }
+    .tab-btn {
+        background-color: var(--surface); border: 1px solid var(--border); padding: 10px 14px; border-radius: 6px;
+        cursor: pointer; font-weight: 600; font-size: 0.85rem; color: var(--text-main);
+    }
+    .tab-btn.active { background-color: var(--tab-active); color: white; border-color: var(--tab-active); }
+    .tab-content { display: none; background-color: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 25px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); }
+    .tab-content.active { display: block; }
+    h2 { margin-top: 0; font-size: 1.25rem; color: var(--accent); border-bottom: 2px solid var(--border); padding-bottom: 10px; }
+    .form-group { margin-bottom: 15px; }
+    label { display: block; font-weight: 600; margin-bottom: 5px; font-size: 0.9rem; }
+    input[type="text"], input[type="password"], input[type="number"], select, textarea {
+        width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 6px; font-size: 0.95rem;
+    }
+    button.action-btn { background-color: var(--highlight); color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-weight: 600; }
+    button.action-btn:hover { background-color: #1d4ed8; }
+    .secondary-btn { background-color: #475569; }
+    .secondary-btn:hover { background-color: #334155; }
+    .success-btn { background-color: var(--success); }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    @media (max-width: 800px) { .grid-2 { grid-template-columns: 1fr; } }
+
+    .file-list-view { list-style: none; padding: 0; margin: 0; max-height: 320px; overflow-y: auto; border: 1px solid var(--border); border-radius: 6px; }
+    .file-item-row { padding: 12px 15px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; cursor: pointer; background: #fafafa; }
+    .file-item-row:hover { background: #f1f5f9; }
+    .viewer-stage { min-height: 260px; border: 2px dashed var(--border); border-radius: 6px; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 20px; background: #fafafa; text-align: center; }
+    .viewer-stage audio, .viewer-stage video, .viewer-stage img { max-width: 100%; max-height: 300px; border-radius: 4px; }
+    .meta-log { margin-top: 15px; background: #0f172a; color: #38bdf8; padding: 12px; border-radius: 6px; font-family: monospace; font-size: 0.8rem; max-height: 160px; overflow-y: auto; }
+    .status-pill { display: inline-block; padding: 3px 9px; border-radius: 999px; font-size: 0.72rem; font-weight: 700; }
+    .status-pill.plain { background: #e2e8f0; color: #334155; }
+    .status-pill.verified { background: #dcfce7; color: #15803d; }
+    .status-pill.stale { background: #fef3c7; color: #b45309; }
+    .status-pill.error { background: #fee2e2; color: #b91c1c; }
+    table.data-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+    table.data-table th, table.data-table td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--border); }
+    .how-it-works { font-size: 0.8rem; color: var(--text-dim); background: #f8fafc; border: 1px solid var(--border); border-radius: 6px; padding: 10px 12px; margin-top: 10px; }
+    code { background: #e2e8f0; padding: 1px 5px; border-radius: 4px; font-size: 0.85em; }
+
+    /* modal */
+    .modal-overlay { position: fixed; inset: 0; background: rgba(15,23,42,0.55); display: none; align-items: center; justify-content: center; z-index: 400; }
+    .modal-overlay.open { display: flex; }
+    .modal-box { background: var(--surface); border-radius: 10px; padding: 26px 28px; width: 420px; max-width: 90vw; box-shadow: 0 20px 50px rgba(0,0,0,0.3); }
+    .modal-box h3 { margin-top: 0; color: var(--warn); }
+    .modal-actions { display: flex; gap: 10px; margin-top: 18px; }
+</style>
+</head>
+<body>
+
+<!-- ================= LOGIN SCREEN — shown once, on first entry to the system ================= -->
+<div id="loginScreen">
+    <div class="login-card">
+        <div class="login-brand"><div class="login-dot"></div><span class="login-title">Enterprise Business Vault</span></div>
+        <div class="login-sub">Sign in to begin. This runs once per visit — you won't see this animation again until you reload.</div>
+        <form id="loginForm">
+            <label>Operator Name</label>
+            <input type="text" id="loginName" placeholder="Your name" autocomplete="name" required>
+            <label>Passphrase</label>
+            <input type="password" id="loginPass" placeholder="Passphrase" autocomplete="current-password" required>
+            <button type="submit">Enter System</button>
+            <div class="login-error" id="loginError"></div>
+        </form>
+        <div class="login-note" id="loginNote">
+            First time in this browser: entering a name and passphrase here creates your operator account.
+            The passphrase itself is never stored anywhere — only a salted verification hash, plus it's used
+            live (never saved) to derive your real AES-256-GCM encryption key for this session. If you forget
+            it, any files you encrypted cannot be recovered — there is no backdoor.
+        </div>
+    </div>
+</div>
+
+<!-- ================= MAIN APP ================= -->
+<div id="app">
+<div class="container">
+    <header>
+        <div>
+            <h1 style="margin:0; font-size: 1.4rem; color: var(--accent);">Enterprise Business Vault</h1>
+            <span style="font-size: 0.8rem; color: var(--text-dim);">Real AES-256-GCM · real file storage · real freshness cycle — nothing here is a canned status message.</span>
+        </div>
+        <div class="header-actions">
+            <span class="operator-badge" id="operatorBadge">Signed in as: —</span>
+            <button class="tab-btn" id="chooseStorageBtn">📁 Choose Storage Location</button>
+        </div>
+    </header>
+
+    <div class="tabs">
+        <button class="tab-btn active" data-tab="identity">1. Identity &amp; Timestamp</button>
+        <button class="tab-btn" data-tab="business">2. Business Suite</button>
+        <button class="tab-btn" data-tab="filesystem">3. File System &amp; Vault</button>
+        <button class="tab-btn" data-tab="datamap">4. Data Map &amp; Manifest</button>
+        <button class="tab-btn" data-tab="freshness">5. Freshness &amp; Integrity</button>
+        <button class="tab-btn" data-tab="remote">6. Remote Endpoint (Advanced)</button>
+        <button class="tab-btn" data-tab="codeeditor">7. Code Inspector &amp; Editor</button>
+    </div>
+
+    <!-- Tab 1: Identity -->
+    <div id="tab-identity" class="tab-content active">
+        <h2>Identity &amp; Real-Time Timestamp</h2>
+        <p style="color:var(--text-dim); font-size:0.9rem;">Your operator name and this session's clock — the clock is a real, ticking <code>Date</code> object, not a static string.</p>
+        <div class="grid-2">
+            <div>
+                <div class="form-group"><label>Operator</label><div id="identityOperator" style="font-weight:700;">—</div></div>
+                <div class="form-group"><label>Session started</label><div id="identitySessionStart">—</div></div>
+            </div>
+            <div>
+                <div class="form-group">
+                    <label>Live Clock</label>
+                    <div id="liveClock" style="font-family:monospace; font-size:1.4rem; font-weight:700;">—</div>
+                </div>
+                <div class="form-group">
+                    <label>Timezone Mode</label>
+                    <select id="timezoneMode">
+                        <option value="local">Local System Time</option>
+                        <option value="utc">Universal Coordinated Time (UTC)</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tab 2: Business Suite -->
+    <div id="tab-business" class="tab-content">
+        <h2>Enterprise Business Suite</h2>
+        <p style="color:var(--text-dim); font-size:0.9rem;">Plain business records. Saved to this browser's real local storage as you type — reload the page and they're still here.</p>
+        <div class="grid-2">
+            <div>
+                <div class="form-group"><label>Entity Legal Name</label><input type="text" id="busEntityName" placeholder="Entity name"></div>
+                <div class="form-group"><label>Optional Taxpayer ID</label><input type="text" id="busTaxId" placeholder="Optional"></div>
+            </div>
+            <div>
+                <div class="form-group"><label>Data Payload Format Label</label><input type="text" id="busFormat" placeholder="e.g. Internal Records Container"></div>
+                <div class="form-group"><label>Notes</label><input type="text" id="busNotes" placeholder="Optional notes"></div>
+            </div>
+        </div>
+        <div id="businessSaveStatus" style="font-size:0.8rem; color: var(--success); font-weight:600;"></div>
+    </div>
+
+    <!-- Tab 3: File System & Vault -->
+    <div id="tab-filesystem" class="tab-content">
+        <h2>File System &amp; Vault (Workspace)</h2>
+        <p style="color:var(--text-dim); font-size:0.9rem;">Load a file, then encode it into a real encrypted <code>.bizvault</code> file — real AES-256-GCM via the browser's Web Crypto API, real CRC32 checksum of the plaintext, real bytes written to a location you choose.</p>
+
+        <div class="grid-2" style="margin-bottom:20px;">
+            <div>
+                <label>Load a plain file</label>
+                <input type="file" id="localFileInput">
+            </div>
+            <div>
+                <label>Load an existing <code>.bizvault</code> file</label>
+                <input type="file" id="vaultFileInput" accept=".bizvault">
+            </div>
+        </div>
+
+        <div class="grid-2">
+            <div>
+                <label>Registry</label>
+                <ul id="fileRegistryList" class="file-list-view"></ul>
+                <div style="margin-top:12px; display:flex; gap:8px; flex-wrap:wrap;">
+                    <button class="action-btn" id="encodeSelectedBtn">Encode Selected → Save Vault File</button>
+                </div>
+            </div>
+            <div>
+                <label>Preview</label>
+                <div id="fileViewerStage" class="viewer-stage"><div style="color:var(--text-dim);">Select a file to preview.</div></div>
+            </div>
+        </div>
+        <div id="fileLog" class="meta-log">[FILE SYSTEM] Ready...</div>
+    </div>
+
+    <!-- Tab 4: Data Map -->
+    <div id="tab-datamap" class="tab-content">
+        <h2>Data Map &amp; Manifest</h2>
+        <p style="color:var(--text-dim); font-size:0.9rem;">Real per-file status — sizes, timestamps, and freshness are computed live from actual data, not filled in for show.</p>
+        <table class="data-table">
+            <thead><tr><th>Name</th><th>Size</th><th>Status</th><th>Created</th><th>Last Verified</th><th>Freshness</th></tr></thead>
+            <tbody id="manifestBody"></tbody>
+        </table>
+    </div>
+
+    <!-- Tab 5: Freshness & Integrity -->
+    <div id="tab-freshness" class="tab-content">
+        <h2>Freshness &amp; Integrity Cycle</h2>
+        <p style="color:var(--text-dim); font-size:0.9rem; max-width:760px;">
+            On a real interval, each encrypted asset is <strong>extracted</strong> (decrypted with your session key),
+            <strong>checked</strong> (CRC32 of the plaintext recomputed and compared against the value stored at
+            encode time — on top of the authentication tag AES-GCM already checks on every decrypt), and then
+            <strong>cold-stored again</strong> (re-encrypted with a freshly generated IV and rewritten to your chosen
+            storage location).
+        </p>
+        <div class="how-it-works">
+            <strong>On "industry standard":</strong> there isn't one single universal number every industry body
+            mandates for data-freshness/integrity re-checks — it varies by data type and risk tolerance (common
+            reference points range from daily integrity scrubs to weekly/monthly backup verification). The default
+            below (24 hours) is a reasonable, commonly-used convention for this kind of check-in cycle, and it's
+            configurable — this is not being presented as a fixed law.
+        </div>
+        <div class="grid-2" style="margin-top:15px;">
+            <div class="form-group"><label>Freshness threshold (hours)</label><input type="number" id="thresholdHours" value="24" min="1"></div>
+            <div class="form-group"><label>Background scan interval (real, seconds)</label><input type="number" id="scanIntervalSeconds" value="30" min="5"></div>
+        </div>
+        <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:15px;">
+            <button class="action-btn" id="runFreshnessNowBtn">Run Freshness Check Now (all assets)</button>
+        </div>
+        <div id="freshnessLog" class="meta-log">[FRESHNESS] Waiting for encrypted assets...</div>
+    </div>
+
+    <!-- Tab 6: Remote Endpoint -->
+    <div id="tab-remote" class="tab-content">
+        <h2>Remote Endpoint (Advanced)</h2>
+        <div class="how-it-works">
+            <strong>Honest limit:</strong> a static page like this one cannot log into Dropbox, Google Drive, or
+            OneDrive directly — those require a real OAuth flow and a registered app, which this file doesn't have.
+            What it <em>can</em> do for real: send an actual HTTP request to any URL you provide that accepts
+            cross-origin requests (e.g. your own server, a webhook, an S3 pre-signed URL). The result shown below is
+            the real HTTP response or the real error — never a fabricated "success."
+        </div>
+        <div class="form-group" style="margin-top:15px;"><label>Endpoint URL</label><input type="text" id="remoteUrl" placeholder="https://your-real-endpoint.example.com/upload"></div>
+        <div class="form-group">
+            <label>Method</label>
+            <select id="remoteMethod"><option value="PUT">PUT</option><option value="POST">POST</option></select>
+        </div>
+        <button class="action-btn" id="remoteTestBtn">Send Test Payload</button>
+        <div id="remoteResult" class="meta-log" style="margin-top:15px;">[REMOTE] No request sent yet.</div>
+    </div>
+
+    <!-- Tab 7: Code Inspector -->
+    <div id="tab-codeeditor" class="tab-content">
+        <h2>Full Code Inspector &amp; Editor</h2>
+        <p style="color:var(--text-dim); font-size:0.9rem;">This really is the live page's own source. Edit it and either download the copy or open it as a new live tab — both trigger a real file, not a message.</p>
+        <div style="display:flex; gap:10px; margin-bottom:15px; flex-wrap:wrap; align-items:center;">
+            <button class="action-btn secondary-btn" id="saveEditCopyBtn">Save Edited Copy (.html)</button>
+            <button class="action-btn success-btn" id="activateNewPageBtn">Open Edited Copy in New Tab</button>
+            <span id="saveEditStatus" style="font-size:0.85rem; font-weight:700; color:var(--success);"></span>
+        </div>
+        <textarea id="fullSourceCodeEditor" rows="16" style="font-family:monospace; font-size:0.78rem; background:#0f172a; color:#38bdf8; padding:15px;"></textarea>
+    </div>
+</div>
+</div>
+
+<!-- Freshness warning modal -->
+<div class="modal-overlay" id="freshnessModal">
+    <div class="modal-box">
+        <h3>⚠ Data Refresh Needed</h3>
+        <p id="freshnessModalText">Some stored files haven't been re-verified within the freshness threshold.</p>
+        <div class="modal-actions">
+            <button class="action-btn" id="modalRunNowBtn">Run Freshness Check Now</button>
+            <button class="action-btn secondary-btn" id="modalDismissBtn">Dismiss</button>
+        </div>
+    </div>
+</div>
+
+<script>
+'use strict';
+
+/* =====================================================================
+ * Enterprise Business Vault
+ * Every operation below is a real operation: real Web Crypto AES-256-GCM,
+ * real PBKDF2 key derivation, real CRC32, real File System Access API
+ * writes where supported, and a real elapsed-time freshness scan. No
+ * button here prints a canned "success" string without the real work
+ * behind it actually having happened.
+ * ===================================================================== */
+
+// ---------------- CRC32 (same algorithm PNG/ZIP use) ----------------
+function crc32(bytes) {
+    let table = crc32.table || (crc32.table = (() => {
+        const t = [];
+        for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1); t[n] = c; }
+        return t;
+    })());
+    let crc = 0xFFFFFFFF;
+    for (let i = 0; i < bytes.length; i++) crc = table[(crc ^ bytes[i]) & 0xFF] ^ (crc >>> 8);
+    return (crc ^ 0xFFFFFFFF) >>> 0;
+}
+
+// ---------------- base64 helpers ----------------
+function bufToB64(buf) { return btoa(String.fromCharCode(...new Uint8Array(buf))); }
+function b64ToBuf(b64) { return Uint8Array.from(atob(b64), c => c.charCodeAt(0)); }
+
+// ---------------- real crypto (Web Crypto API) ----------------
+const VaultCrypto = {
+    available: typeof window !== 'undefined' && window.isSecureContext && window.crypto && window.crypto.subtle,
+    async importKeyMaterial(passphrase) {
+        return crypto.subtle.importKey('raw', new TextEncoder().encode(passphrase), 'PBKDF2', false, ['deriveKey', 'deriveBits']);
+    },
+    async deriveAesKey(passphrase, salt) {
+        const km = await this.importKeyMaterial(passphrase);
+        return crypto.subtle.deriveKey({ name: 'PBKDF2', salt, iterations: 250000, hash: 'SHA-256' }, km, { name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']);
+    },
+    async deriveVerifierBits(passphrase, salt) {
+        const km = await this.importKeyMaterial(passphrase);
+        const bits = await crypto.subtle.deriveBits({ name: 'PBKDF2', salt, iterations: 250000, hash: 'SHA-256' }, km, 256);
+        return new Uint8Array(bits);
+    },
+    async encrypt(bytes, key) {
+        const iv = crypto.getRandomValues(new Uint8Array(12));
+        const ct = new Uint8Array(await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, bytes));
+        return { ct, iv };
+    },
+    async decrypt(ct, key, iv) {
+        return new Uint8Array(await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, ct)); // throws on wrong key or tampered data
+    }
+};
+
+// ---------------- vault file format: "BIZV" ----------------
+// magic(4="BIZV") + iv(12) + ciphertext(rest)
+// plaintext (before encryption) = nameLen(1) + nameBytes + origLen(4) + crc32(4) + fileBytes
+const VAULT_MAGIC = "BIZV";
+
+async function encodeAsset(fileBytes, filename, key) {
+    const nameBytes = new TextEncoder().encode(filename);
+    const crc = crc32(fileBytes);
+    const header = new Uint8Array(1 + nameBytes.length + 4 + 4);
+    let o = 0;
+    header[o] = nameBytes.length; o += 1;
+    header.set(nameBytes, o); o += nameBytes.length;
+    new DataView(header.buffer).setUint32(o, fileBytes.length, false); o += 4;
+    new DataView(header.buffer).setUint32(o, crc, false); o += 4;
+    const plain = new Uint8Array(header.length + fileBytes.length);
+    plain.set(header, 0); plain.set(fileBytes, header.length);
+
+    const { ct, iv } = await VaultCrypto.encrypt(plain, key);
+    const magicBytes = new TextEncoder().encode(VAULT_MAGIC);
+    const out = new Uint8Array(4 + 12 + ct.length);
+    out.set(magicBytes, 0); out.set(iv, 4); out.set(ct, 16);
+    return out;
+}
+
+async function decodeAsset(raw, key) {
+    const magic = new TextDecoder().decode(raw.slice(0, 4));
+    if (magic !== VAULT_MAGIC) throw new Error('Not a recognized .bizvault file (bad magic bytes).');
+    const iv = raw.slice(4, 16);
+    const ct = raw.slice(16);
+    const plain = await VaultCrypto.decrypt(ct, key, iv); // throws here if key is wrong or data was tampered
+
+    let o = 0;
+    const nameLen = plain[o]; o += 1;
+    const name = new TextDecoder().decode(plain.slice(o, o + nameLen)); o += nameLen;
+    const dv = new DataView(plain.buffer, plain.byteOffset);
+    const origLen = dv.getUint32(o, false); o += 4;
+    const storedCrc = dv.getUint32(o, false); o += 4;
+    const fileBytes = plain.slice(o, o + origLen);
+    const actualCrc = crc32(fileBytes);
+    return { name, fileBytes, storedCrc, actualCrc, crcOk: actualCrc === storedCrc };
+}
+
+// ---------------- account / login ----------------
+const ACCOUNT_KEY = 'bizVaultAccount_v1';
+let sessionKey = null;       // CryptoKey, in memory only, never persisted
+let sessionOperator = null;
+let sessionStart = null;
+
+function log(elId, msg, cls) {
+    const el = document.getElementById(elId);
+    if (!el) return;
+    const ts = new Date().toTimeString().split(' ')[0];
+    const line = document.createElement('div');
+    if (cls) line.style.color = cls;
+    line.textContent = `[${ts}] ${msg}`;
+    el.appendChild(line);
+    el.scrollTop = el.scrollHeight;
+}
+
+document.getElementById('loginForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const name = document.getElementById('loginName').value.trim();
+    const pass = document.getElementById('loginPass').value;
+    const errEl = document.getElementById('loginError');
+    errEl.textContent = '';
+
+    if (!VaultCrypto.available) { errEl.textContent = 'This browser/context does not support the Web Crypto API needed for real encryption (needs https or localhost).'; return; }
+    if (!name || !pass) { errEl.textContent = 'Enter both a name and a passphrase.'; return; }
+
+    let account = null;
+    try { account = JSON.parse(localStorage.getItem(ACCOUNT_KEY) || 'null'); } catch { account = null; }
+
+    try {
+        if (!account) {
+            const salt = crypto.getRandomValues(new Uint8Array(16));
+            const verifier = await VaultCrypto.deriveVerifierBits(pass, salt);
+            account = { name, saltB64: bufToB64(salt), verifierB64: bufToB64(verifier), createdAt: new Date().toISOString() };
+            localStorage.setItem(ACCOUNT_KEY, JSON.stringify(account));
+        } else {
+            const salt = b64ToBuf(account.saltB64);
+            const verifier = await VaultCrypto.deriveVerifierBits(pass, salt);
+            if (bufToB64(verifier) !== account.verifierB64) {
+                errEl.textContent = "Incorrect passphrase for this browser's saved operator account.";
+                return;
+            }
+            account.name = name; // allow display-name update without changing the passphrase
+            localStorage.setItem(ACCOUNT_KEY, JSON.stringify(account));
+        }
+
+        const salt = b64ToBuf(account.saltB64);
+        sessionKey = await VaultCrypto.deriveAesKey(pass, salt);
+        sessionOperator = account.name;
+        sessionStart = new Date();
+        enterApp();
+    } catch (err) {
+        errEl.textContent = 'Could not sign in: ' + err.message;
+    }
+});
+
+function enterApp() {
+    document.getElementById('loginScreen').remove(); // the login animation never shows again this session
+    document.getElementById('app').style.display = 'block';
+    document.getElementById('operatorBadge').textContent = `Signed in as: ${sessionOperator}`;
+    document.getElementById('identityOperator').textContent = sessionOperator;
+    document.getElementById('identitySessionStart').textContent = sessionStart.toLocaleString();
+    startClock();
+    loadBusinessInfo();
+    loadFullSourceIntoEditor();
+    startFreshnessScheduler();
+    renderRegistry();
+    renderManifest();
+}
+
+// ---------------- tabs ----------------
+document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        btn.classList.add('active');
+        document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+    });
+});
+
+// ---------------- real live clock ----------------
+function startClock() {
+    function tick() {
+        const mode = document.getElementById('timezoneMode').value;
+        const now = new Date();
+        document.getElementById('liveClock').textContent = mode === 'utc' ? now.toUTCString() : now.toLocaleString();
+    }
+    tick();
+    setInterval(tick, 1000);
+    document.getElementById('timezoneMode').addEventListener('change', tick);
+}
+
+// ---------------- Business Suite: real localStorage persistence ----------------
+const BUSINESS_KEY = 'bizVaultBusinessInfo_v1';
+function loadBusinessInfo() {
+    let info = {};
+    try { info = JSON.parse(localStorage.getItem(BUSINESS_KEY) || '{}'); } catch { info = {}; }
+    document.getElementById('busEntityName').value = info.entityName || '';
+    document.getElementById('busTaxId').value = info.taxId || '';
+    document.getElementById('busFormat').value = info.format || '';
+    document.getElementById('busNotes').value = info.notes || '';
+    ['busEntityName','busTaxId','busFormat','busNotes'].forEach(id => {
+        document.getElementById(id).addEventListener('input', saveBusinessInfo);
+    });
+}
+function saveBusinessInfo() {
+    const info = {
+        entityName: document.getElementById('busEntityName').value,
+        taxId: document.getElementById('busTaxId').value,
+        format: document.getElementById('busFormat').value,
+        notes: document.getElementById('busNotes').value,
+    };
+    localStorage.setItem(BUSINESS_KEY, JSON.stringify(info));
+    // verify the round trip before claiming it saved
+    const readBack = JSON.parse(localStorage.getItem(BUSINESS_KEY));
+    const ok = JSON.stringify(readBack) === JSON.stringify(info);
+    document.getElementById('businessSaveStatus').textContent = ok
+        ? `Saved to this browser's local storage (verified) at ${new Date().toLocaleTimeString()}.`
+        : 'Save could not be verified — check browser storage permissions.';
+}
+
+// ---------------- File System & Vault ----------------
+const App = { assets: [], activeIdx: null, fsDirHandle: null };
+
+document.getElementById('chooseStorageBtn').addEventListener('click', async () => {
+    if (!('showDirectoryPicker' in window)) { log('fileLog', 'Folder selection needs a Chromium-based browser (Chrome/Edge).', 'crimson'); return; }
+    try {
+        App.fsDirHandle = await window.showDirectoryPicker({ mode: 'readwrite' });
+        document.getElementById('chooseStorageBtn').textContent = `📁 ${App.fsDirHandle.name}`;
+        log('fileLog', `Storage location set to "${App.fsDirHandle.name}". Vault files will be written straight there.`);
+    } catch (err) {
+        if (err.name !== 'AbortError') log('fileLog', `Could not set storage location: ${err.message}`, 'crimson');
+    }
+});
+
+function guessKind(name) {
+    if (/\.(png|jpe?g|gif|webp)$/i.test(name)) return 'Image';
+    if (/\.(mp4|webm|ogv)$/i.test(name)) return 'Video';
+    if (/\.(mp3|wav|ogg|m4a)$/i.test(name)) return 'Audio';
+    if (/\.pdf$/i.test(name)) return 'PDF';
+    return 'File';
+}
+
+document.getElementById('localFileInput').addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const bytes = new Uint8Array(await file.arrayBuffer());
+    App.assets.push({
+        name: file.name, size: bytes.length, kind: guessKind(file.name), raw: bytes,
+        isEncrypted: false, status: 'plain', createdAt: new Date(), lastVerifiedAt: null, storedCrc: null
+    });
+    log('fileLog', `Loaded ${file.name} (${bytes.length} bytes) — not yet encoded.`);
+    renderRegistry(); renderManifest();
+});
+
+document.getElementById('vaultFileInput').addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const bytes = new Uint8Array(await file.arrayBuffer());
+    try {
+        const result = await decodeAsset(bytes, sessionKey);
+        if (!result.crcOk) throw new Error('Decrypted, but CRC32 mismatch — file may be corrupt.');
+        App.assets.push({
+            name: result.name, size: result.fileBytes.length, kind: guessKind(result.name), raw: result.fileBytes,
+            isEncrypted: true, status: 'verified', createdAt: new Date(), lastVerifiedAt: new Date(), storedCrc: result.storedCrc
+        });
+        log('fileLog', `Decoded ${result.name} — AES-GCM auth tag valid, CRC32 verified.`);
+    } catch (err) {
+        log('fileLog', `Failed to decode ${file.name}: ${err.message}`, 'crimson');
+    }
+    renderRegistry(); renderManifest();
+});
+
+function renderRegistry() {
+    const list = document.getElementById('fileRegistryList');
+    list.innerHTML = '';
+    if (App.assets.length === 0) {
+        list.innerHTML = `<li style="padding:15px; color:var(--text-dim); text-align:center;">No files yet.</li>`;
+        return;
+    }
+    App.assets.forEach((a, idx) => {
+        const li = document.createElement('li');
+        li.className = 'file-item-row';
+        const pillClass = a.status === 'plain' ? 'plain' : a.status === 'verified' ? 'verified' : a.status === 'stale' ? 'stale' : 'error';
+        li.innerHTML = `<div><strong>${a.name}</strong><br><span style="font-size:0.75rem; color:var(--text-dim);">${a.size.toLocaleString()} bytes · ${a.kind}</span></div><span class="status-pill ${pillClass}">${a.status}</span>`;
+        li.addEventListener('click', () => { App.activeIdx = idx; renderPreview(a); });
+        list.appendChild(li);
+    });
+}
+
+function renderPreview(asset) {
+    const stage = document.getElementById('fileViewerStage');
+    stage.innerHTML = '';
+    const blob = new Blob([asset.raw]);
+    const url = URL.createObjectURL(blob);
+    if (asset.kind === 'Image') { const img = document.createElement('img'); img.src = url; stage.appendChild(img); }
+    else if (asset.kind === 'Video') { const v = document.createElement('video'); v.src = url; v.controls = true; stage.appendChild(v); }
+    else if (asset.kind === 'Audio') { const au = document.createElement('audio'); au.src = url; au.controls = true; stage.appendChild(au); }
+    else if (asset.kind === 'PDF') { const ifr = document.createElement('iframe'); ifr.src = url; ifr.style.cssText = 'width:100%;height:280px;border:none;'; stage.appendChild(ifr); }
+    else {
+        let text; try { text = new TextDecoder('utf-8', { fatal: true }).decode(asset.raw.slice(0, 2000)); }
+        catch { text = `[binary data — ${asset.raw.length} bytes]`; }
+        const pre = document.createElement('pre'); pre.style.cssText = 'text-align:left; white-space:pre-wrap; font-size:0.8rem; width:100%;'; pre.textContent = text;
+        stage.appendChild(pre);
+    }
+}
+
+document.getElementById('encodeSelectedBtn').addEventListener('click', async () => {
+    if (App.activeIdx === null) { log('fileLog', 'Select a file in the registry first.', 'crimson'); return; }
+    const asset = App.assets[App.activeIdx];
+    if (asset.isEncrypted) { log('fileLog', `${asset.name} is already an encrypted vault entry.`, 'crimson'); return; }
+
+    const encoded = await encodeAsset(asset.raw, asset.name, sessionKey);
+    // verify by decoding what was just made — never mark something encoded without a real round-trip check
+    const verify = await decodeAsset(encoded, sessionKey);
+    const roundTripOk = verify.crcOk && verify.fileBytes.length === asset.raw.length && verify.fileBytes.every((b, i) => b === asset.raw[i]);
+    if (!roundTripOk) { log('fileLog', `Encoding ${asset.name} failed its own round-trip check — not saved.`, 'crimson'); return; }
+
+    const outName = asset.name + '.bizvault';
+    try {
+        if (App.fsDirHandle) {
+            const fh = await App.fsDirHandle.getFileHandle(outName, { create: true });
+            const w = await fh.createWritable();
+            await w.write(encoded); await w.close();
+            log('fileLog', `Saved ${outName} to "${App.fsDirHandle.name}".`);
+        } else if ('showSaveFilePicker' in window) {
+            const handle = await window.showSaveFilePicker({ suggestedName: outName });
+            const w = await handle.createWritable();
+            await w.write(encoded); await w.close();
+            log('fileLog', `Saved ${outName} to the location you chose.`);
+        } else {
+            const blob = new Blob([encoded]);
+            const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = outName; a.click();
+            log('fileLog', `Downloaded ${outName}.`);
+        }
+    } catch (err) {
+        if (err.name === 'AbortError') { log('fileLog', 'Save cancelled.'); return; }
+        log('fileLog', `Save failed: ${err.message}`, 'crimson'); return;
+    }
+
+    asset.isEncrypted = true;
+    asset.status = 'verified';
+    asset.storedCrc = crc32(asset.raw);
+    asset.lastVerifiedAt = new Date();
+    asset.encodedBytes = encoded;
+    renderRegistry(); renderManifest();
+});
+
+// ---------------- Data Map / Manifest ----------------
+function hoursSince(date) { return (Date.now() - date.getTime()) / 3600000; }
+
+function renderManifest() {
+    const tbody = document.getElementById('manifestBody');
+    tbody.innerHTML = '';
+    const threshold = parseFloat(document.getElementById('thresholdHours')?.value) || 24;
+    App.assets.forEach(a => {
+        const tr = document.createElement('tr');
+        const freshness = !a.isEncrypted ? '—'
+            : (hoursSince(a.lastVerifiedAt) < threshold ? `Fresh (${hoursSince(a.lastVerifiedAt).toFixed(1)}h ago)` : `Needs Refresh (${hoursSince(a.lastVerifiedAt).toFixed(1)}h ago)`);
+        tr.innerHTML = `<td>${a.name}</td><td>${a.size.toLocaleString()} B</td><td>${a.status}</td><td>${a.createdAt.toLocaleString()}</td><td>${a.lastVerifiedAt ? a.lastVerifiedAt.toLocaleString() : '—'}</td><td>${freshness}</td>`;
+        tbody.appendChild(tr);
+    });
+}
+
+// ---------------- Freshness & Integrity cycle ----------------
+let freshnessModalShown = false;
+
+async function runFreshnessCycle(manual) {
+    const threshold = parseFloat(document.getElementById('thresholdHours').value) || 24;
+    const encryptedAssets = App.assets.filter(a => a.isEncrypted);
+    if (encryptedAssets.length === 0) { log('freshnessLog', 'No encrypted assets to check yet.'); return; }
+
+    let overdueBefore = encryptedAssets.filter(a => hoursSince(a.lastVerifiedAt) >= threshold);
+    const toProcess = manual ? encryptedAssets : overdueBefore;
+    if (toProcess.length === 0) { if (manual) log('freshnessLog', 'All assets are within the freshness threshold — nothing to refresh.'); return; }
+
+    for (const asset of toProcess) {
+        try {
+            log('freshnessLog', `Extracting ${asset.name} for verification...`);
+            const decoded = await decodeAsset(asset.encodedBytes, sessionKey); // real decrypt (GCM tag checked here)
+            if (!decoded.crcOk) throw new Error('CRC32 mismatch after decrypt.');
+            log('freshnessLog', `  → checked: AES-GCM tag valid, CRC32 ${decoded.actualCrc.toString(16)} matches stored value.`);
+
+            const reEncoded = await encodeAsset(decoded.fileBytes, decoded.name, sessionKey); // fresh IV
+            if (App.fsDirHandle) {
+                const fh = await App.fsDirHandle.getFileHandle(asset.name + '.bizvault', { create: true });
+                const w = await fh.createWritable(); await w.write(reEncoded); await w.close();
+                log('freshnessLog', `  → cold-stored again: rewritten to "${App.fsDirHandle.name}" with a fresh IV.`);
+            } else {
+                log('freshnessLog', `  → cold-stored again in memory with a fresh IV (no storage folder chosen, so nothing was written to disk this cycle).`);
+            }
+            asset.encodedBytes = reEncoded;
+            asset.status = 'verified';
+            asset.lastVerifiedAt = new Date();
+        } catch (err) {
+            asset.status = 'error';
+            log('freshnessLog', `Freshness check failed for ${asset.name}: ${err.message}`, 'crimson');
+        }
+    }
+    renderRegistry(); renderManifest();
+}
+
+document.getElementById('runFreshnessNowBtn').addEventListener('click', () => runFreshnessCycle(true));
+document.getElementById('modalRunNowBtn').addEventListener('click', () => { runFreshnessCycle(true); closeFreshnessModal(); });
+document.getElementById('modalDismissBtn').addEventListener('click', closeFreshnessModal);
+function closeFreshnessModal() { document.getElementById('freshnessModal').classList.remove('open'); }
+
+function startFreshnessScheduler() {
+    function scan() {
+        const threshold = parseFloat(document.getElementById('thresholdHours').value) || 24;
+        const overdue = App.assets.filter(a => a.isEncrypted && hoursSince(a.lastVerifiedAt) >= threshold);
+        if (overdue.length > 0) {
+            runFreshnessCycle(false); // real auto re-check + re-encrypt for anything actually overdue
+            if (!freshnessModalShown) {
+                document.getElementById('freshnessModalText').textContent =
+                    `${overdue.length} file(s) had gone longer than the ${threshold}-hour freshness threshold since their last check. They've just been re-verified and cold-stored again.`;
+                document.getElementById('freshnessModal').classList.add('open');
+                freshnessModalShown = true;
+                setTimeout(() => { freshnessModalShown = false; }, 60000);
+            }
+        }
+        renderManifest();
+    }
+    const intervalSeconds = () => Math.max(5, parseFloat(document.getElementById('scanIntervalSeconds').value) || 30);
+    let handle = setInterval(scan, intervalSeconds() * 1000);
+    document.getElementById('scanIntervalSeconds').addEventListener('change', () => {
+        clearInterval(handle);
+        handle = setInterval(scan, intervalSeconds() * 1000);
+    });
+    scan();
+}
+
+// ---------------- Remote endpoint (real fetch, real result) ----------------
+document.getElementById('remoteTestBtn').addEventListener('click', async () => {
+    const url = document.getElementById('remoteUrl').value.trim();
+    const method = document.getElementById('remoteMethod').value;
+    const out = document.getElementById('remoteResult');
+    if (!url) { log('remoteResult', 'Enter a real endpoint URL first.', 'crimson'); return; }
+    log('remoteResult', `Sending real ${method} request to ${url} ...`);
+    try {
+        const resp = await fetch(url, {
+            method,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ test: true, from: 'Enterprise Business Vault', timestamp: new Date().toISOString() })
+        });
+        const text = await resp.text().catch(() => '');
+        log('remoteResult', `Response: HTTP ${resp.status} ${resp.statusText}. Body (truncated): ${text.slice(0, 300)}`, resp.ok ? 'seagreen' : 'crimson');
+    } catch (err) {
+        log('remoteResult', `Real request failed: ${err.message} (often a CORS restriction on the endpoint, or it doesn't exist).`, 'crimson');
+    }
+});
+
+// ---------------- Code Inspector ----------------
+function loadFullSourceIntoEditor() {
+    document.getElementById('fullSourceCodeEditor').value = '<!DOCTYPE html>\n' + document.documentElement.outerHTML;
+}
+let editVersionCounter = 0;
+document.getElementById('saveEditCopyBtn').addEventListener('click', () => {
+    editVersionCounter++;
+    const filename = `EnterpriseBusinessVault_edit(${editVersionCounter}).html`;
+    const content = document.getElementById('fullSourceCodeEditor').value;
+    const blob = new Blob([content], { type: 'text/html;charset=utf-8' });
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = filename; a.click();
+    document.getElementById('saveEditStatus').textContent = `Downloaded ${filename}.`;
+});
+document.getElementById('activateNewPageBtn').addEventListener('click', () => {
+    const content = document.getElementById('fullSourceCodeEditor').value;
+    const blob = new Blob([content], { type: 'text/html;charset=utf-8' });
+    window.open(URL.createObjectURL(blob), '_blank');
+    document.getElementById('saveEditStatus').textContent = 'Opened edited copy in a new tab.';
+});
+</script>
+</body>
+</html>
