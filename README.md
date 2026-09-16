@@ -69,7 +69,7 @@ The `.bizvault` binary structure is assembled as follows:
 
 ##NEVER SHARE OR STORE PASSPHRASE WITHOUT COMPLETE TRUST!
 
-Enterprise Buisness Vault Copyright 2026 Joseph La Follette --ALL RIGHTS RESERVED  
+Enterprise Business Vault Copyright 2026 Joseph La Follette --ALL RIGHTS RESERVED  
 
 Contact 21centjoe@gmail.com for corporate licensing rates.
 
