@@ -2,6 +2,8 @@
 
 
 # Enterprise Business Vault
+#Keeps files in both cold storage and the cloud.
+##with offline self-healing geometric file refresh.
 
 **Enterprise Business Vault** is a secure, client-side enterprise document vault and cryptographic asset manager packaged entirely within a single, self-contained HTML file. It provides zero-trust local encryption, robust file integrity verification, automated freshness scrubbing cycles, and direct file system integration using modern browser APIs.
 
