@@ -89,6 +89,7 @@ Admin Mode — a re-auth (passphrase) unlocks Owner Identity, lockout reset, coi
 
 Eye icons — on passphrase fields, the Tax ID field, the coin displays, the Owner ID, and the raw JSON block, each independently toggleable, always defaulting to hidden on reload.
 
-Copyright — updated to Copyright (C) 2026 Joseph La Follette. ALL RIGHTS RESERVED. throughout.
+Copyright — updated to Copyright (C) 2026 Joseph La Follette, AGPL in effect.
+
 
 One thing I couldn't do: I only have the pasted file content, not push access to your actual GitHub repo, so I can't update the LICENSE file or README there directly. For consistency you'll want to manually replace the AGPL-3.0 LICENSE text with a proprietary notice and drop the "AGPL-3.0 license" badge from the README, per what we discussed earlier — otherwise the repo will still visibly claim an open-source license that contradicts this file's own header.
