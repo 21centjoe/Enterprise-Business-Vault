@@ -1,0 +1,1509 @@
+<!--
+    Enterprise Business Vault
+    Copyright (C) 2026 Joseph La Follette. ALL RIGHTS RESERVED.
+
+    No part of this software may be copied, modified, distributed, sublicensed,
+    or used, in whole or in part, without the prior written permission of
+    Joseph La Follette. This software is provided "as is", without warranty
+    of any kind, express or implied.
+
+    Contact 21centjoe@gmail.com for licensing.
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Enterprise Business Vault</title>
+<style>
+    :root {
+        --bg-primary: #f8fafc;
+        --surface: #ffffff;
+        --border: #cbd5e1;
+        --text-main: #1e293b;
+        --text-dim: #64748b;
+        --accent: #0f172a;
+        --highlight: #2563eb;
+        --success: #16a34a;
+        --danger: #dc2626;
+        --warn: #b45309;
+        --tab-active: #2563eb;
+        --admin: #7c3aed;
+    }
+    * { box-sizing: border-box; }
+    body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        background-color: var(--bg-primary);
+        color: var(--text-main);
+        margin: 0;
+        padding: 0;
+    }
+    .container { max-width: 1400px; margin: 0 auto; padding: 20px; }
+
+    /* ---------------- Login / recovery / lockout screen ---------------- */
+    #loginScreen {
+        position: fixed; inset: 0; z-index: 500;
+        display: flex; align-items: center; justify-content: center;
+        background: radial-gradient(ellipse at 50% 30%, #1e293b, #0f172a 70%);
+        overflow-y: auto; padding: 30px 0;
+    }
+    @keyframes loginRise {
+        from { opacity: 0; transform: translateY(22px) scale(0.97); }
+        to   { opacity: 1; transform: translateY(0) scale(1); }
+    }
+    @keyframes dotPulse {
+        0%, 100% { opacity: 0.35; transform: scale(1); }
+        50%      { opacity: 1; transform: scale(1.25); }
+    }
+    .login-card {
+        animation: loginRise 0.8s cubic-bezier(.2,.8,.2,1);
+        background: var(--surface);
+        border-radius: 12px;
+        padding: 36px 40px;
+        width: 420px;
+        max-width: 90vw;
+        box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+    }
+    .login-card.locked-card { border-top: 5px solid var(--danger); }
+    .login-brand { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+    .login-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--highlight); animation: dotPulse 2.2s ease-in-out infinite; }
+    .login-dot.danger-dot { background: var(--danger); }
+    .login-title { font-size: 1.15rem; font-weight: 700; color: var(--accent); }
+    .login-sub { font-size: 0.8rem; color: var(--text-dim); margin-bottom: 22px; }
+    .login-card label { display: block; font-size: 0.85rem; font-weight: 600; margin: 14px 0 6px; }
+    .field-with-eye { display: flex; gap: 6px; align-items: stretch; }
+    .field-with-eye input { flex: 1; }
+    .eye-btn {
+        border: 1px solid var(--border); background: #f1f5f9; border-radius: 6px; cursor: pointer;
+        font-size: 1rem; padding: 0 12px; line-height: 1; flex-shrink: 0;
+    }
+    .eye-btn:hover { background: #e2e8f0; }
+    .login-card input {
+        width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 6px; font-size: 0.95rem;
+    }
+    .login-card button.primary {
+        width: 100%; margin-top: 20px; background: var(--highlight); color: white; border: none;
+        padding: 12px; border-radius: 6px; font-weight: 700; cursor: pointer; font-size: 0.95rem;
+    }
+    .login-card button.primary:hover { background: #1d4ed8; }
+    .login-card button.primary.danger-btn { background: var(--danger); }
+    .login-card button.primary.danger-btn:hover { background: #b91c1c; }
+    .login-card .link-btn {
+        background: none; border: none; color: var(--highlight); font-size: 0.8rem; cursor: pointer;
+        padding: 0; margin-top: 14px; text-decoration: underline; display: block;
+    }
+    .login-error { color: var(--danger); font-size: 0.8rem; margin-top: 10px; min-height: 1em; }
+    .login-note { font-size: 0.72rem; color: var(--text-dim); margin-top: 16px; line-height: 1.5; border-top: 1px solid var(--border); padding-top: 12px; }
+    .owner-static { font-weight: 700; color: var(--accent); font-size: 1.05rem; }
+    .attempts-pill { display:inline-block; margin-top:8px; font-size:0.72rem; font-weight:700; padding:3px 9px; border-radius:999px; background:#fef3c7; color:#b45309; }
+
+    /* ---------------- coin display ---------------- */
+    .coin-box {
+        font-family: monospace; font-size: 1.05rem; font-weight: 700; letter-spacing: 1px;
+        background: #0f172a; color: #38bdf8; padding: 16px; border-radius: 8px; text-align: center;
+        word-break: break-all; margin: 14px 0;
+    }
+    .coin-warning {
+        background: #fef3c7; color: #78350f; border: 1px solid #fbbf24; border-radius: 6px;
+        padding: 10px 12px; font-size: 0.78rem; line-height: 1.5; margin-bottom: 10px;
+    }
+
+    /* ---------------- App shell ---------------- */
+    #app { display: none; }
+    header {
+        background-color: var(--surface); border: 1px solid var(--border); padding: 16px 20px; border-radius: 8px;
+        display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;
+        box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); flex-wrap: wrap; gap: 10px;
+    }
+    .operator-badge { background-color: var(--accent); color: white; padding: 8px 14px; border-radius: 6px; font-size: 0.85rem; font-weight: 600; }
+    .header-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+    .admin-toggle-btn { background-color: var(--admin); color: white; border: none; }
+    .admin-toggle-btn:hover { background-color: #6d28d9; }
+
+    .admin-banner {
+        display: none; background: var(--admin); color: white; padding: 10px 16px; border-radius: 8px;
+        font-size: 0.82rem; font-weight: 700; margin-bottom: 12px; align-items: center; justify-content: space-between;
+    }
+    .admin-banner.on { display: flex; }
+
+    .tabs { display: flex; gap: 6px; margin-bottom: 20px; flex-wrap: wrap; }
+    .tab-btn {
+        background-color: var(--surface); border: 1px solid var(--border); padding: 10px 14px; border-radius: 6px;
+        cursor: pointer; font-weight: 600; font-size: 0.85rem; color: var(--text-main);
+    }
+    .tab-btn.active { background-color: var(--tab-active); color: white; border-color: var(--tab-active); }
+    .tab-btn.admin-tab.active { background-color: var(--admin); border-color: var(--admin); }
+    .tab-content { display: none; background-color: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 25px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); }
+    .tab-content.active { display: block; }
+    h2 { margin-top: 0; font-size: 1.25rem; color: var(--accent); border-bottom: 2px solid var(--border); padding-bottom: 10px; }
+    .form-group { margin-bottom: 15px; }
+    label { display: block; font-weight: 600; margin-bottom: 5px; font-size: 0.9rem; }
+    input[type="text"], input[type="password"], input[type="number"], select, textarea {
+        width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 6px; font-size: 0.95rem;
+    }
+    button.action-btn { background-color: var(--highlight); color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-weight: 600; }
+    button.action-btn:hover { background-color: #1d4ed8; }
+    .secondary-btn { background-color: #475569; }
+    .secondary-btn:hover { background-color: #334155; }
+    .success-btn { background-color: var(--success); }
+    .admin-btn { background-color: var(--admin); }
+    .admin-btn:hover { background-color: #6d28d9; }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    @media (max-width: 800px) { .grid-2 { grid-template-columns: 1fr; } }
+
+    .file-list-view { list-style: none; padding: 0; margin: 0; max-height: 320px; overflow-y: auto; border: 1px solid var(--border); border-radius: 6px; }
+    .file-item-row { padding: 12px 15px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; cursor: pointer; background: #fafafa; }
+    .file-item-row:hover { background: #f1f5f9; }
+    .viewer-stage { min-height: 260px; border: 2px dashed var(--border); border-radius: 6px; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 20px; background: #fafafa; text-align: center; }
+    .viewer-stage audio, .viewer-stage video, .viewer-stage img { max-width: 100%; max-height: 300px; border-radius: 4px; }
+    .meta-log { margin-top: 15px; background: #0f172a; color: #38bdf8; padding: 12px; border-radius: 6px; font-family: monospace; font-size: 0.8rem; max-height: 160px; overflow-y: auto; }
+    .status-pill { display: inline-block; padding: 3px 9px; border-radius: 999px; font-size: 0.72rem; font-weight: 700; }
+    .status-pill.plain { background: #e2e8f0; color: #334155; }
+    .status-pill.verified { background: #dcfce7; color: #15803d; }
+    .status-pill.stale { background: #fef3c7; color: #b45309; }
+    .status-pill.error { background: #fee2e2; color: #b91c1c; }
+    table.data-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+    table.data-table th, table.data-table td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--border); }
+    .how-it-works { font-size: 0.8rem; color: var(--text-dim); background: #f8fafc; border: 1px solid var(--border); border-radius: 6px; padding: 10px 12px; margin-top: 10px; }
+    code { background: #e2e8f0; padding: 1px 5px; border-radius: 4px; font-size: 0.85em; }
+
+    /* admin-only locked panel (shown inside a tab when not in admin mode) */
+    .admin-locked-panel {
+        text-align: center; padding: 50px 20px; color: var(--text-dim);
+    }
+    .admin-locked-panel .lock-icon { font-size: 2.5rem; margin-bottom: 10px; }
+    .admin-field-row { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+    .admin-field-row .mono-block {
+        flex: 1; font-family: monospace; font-size: 0.85rem; background: #f1f5f9; border: 1px solid var(--border);
+        border-radius: 6px; padding: 8px 10px; word-break: break-all;
+    }
+    .raw-json-block {
+        font-family: monospace; font-size: 0.78rem; background: #0f172a; color: #a5f3fc; padding: 14px;
+        border-radius: 6px; white-space: pre-wrap; word-break: break-all; max-height: 260px; overflow-y: auto;
+    }
+
+    /* modal */
+    .modal-overlay { position: fixed; inset: 0; background: rgba(15,23,42,0.55); display: none; align-items: center; justify-content: center; z-index: 400; padding: 20px; }
+    .modal-overlay.open { display: flex; }
+    .modal-box { background: var(--surface); border-radius: 10px; padding: 26px 28px; width: 460px; max-width: 90vw; box-shadow: 0 20px 50px rgba(0,0,0,0.3); max-height: 90vh; overflow-y: auto; }
+    .modal-box h3 { margin-top: 0; color: var(--warn); }
+    .modal-box h3.admin-h { color: var(--admin); }
+    .modal-actions { display: flex; gap: 10px; margin-top: 18px; }
+    .modal-actions button { flex: 1; }
+    .checkbox-row { display: flex; align-items: flex-start; gap: 8px; margin: 14px 0; font-size: 0.82rem; }
+    .checkbox-row input { width: auto; margin-top: 3px; }
+</style>
+</head>
+<body>
+
+<!-- ================= LOGIN / CREATE / RECOVER / LOCKED SCREEN ================= -->
+<div id="loginScreen">
+
+    <!-- ---- Create-account form (shown only when no local vault account exists) ---- -->
+    <div class="login-card" id="createCard">
+        <div class="login-brand"><div class="login-dot"></div><span class="login-title">Enterprise Business Vault</span></div>
+        <div class="login-sub">No vault found on this browser. Create a new one, or restore an existing vault from a <code>.bizvault</code> file.</div>
+        <form id="createForm">
+            <label>Vault Owner Name <span style="font-weight:400;color:var(--text-dim);">(permanent — cannot be changed later)</span></label>
+            <input type="text" id="createOwnerName" placeholder="Legal or operator name" autocomplete="name" required>
+            <label>New Passphrase</label>
+            <div class="field-with-eye">
+                <input type="password" id="createPass" placeholder="Choose a strong passphrase" autocomplete="new-password" required>
+                <button type="button" class="eye-btn" id="eyeCreatePass">👁</button>
+            </div>
+            <label>Confirm Passphrase</label>
+            <div class="field-with-eye">
+                <input type="password" id="createPassConfirm" placeholder="Re-enter passphrase" autocomplete="new-password" required>
+                <button type="button" class="eye-btn" id="eyeCreatePassConfirm">👁</button>
+            </div>
+            <button type="submit" class="primary">Create Vault</button>
+            <div class="login-error" id="createError"></div>
+        </form>
+        <button type="button" class="link-btn" id="showRestoreLink">Restore an existing vault from a .bizvault file instead</button>
+        <div class="login-note">
+            Creating a vault generates a random Master Key that actually encrypts your files. That key is then
+            locked with two independent keys: your passphrase, and a one-time Recovery Coin you'll be shown once.
+            Either one can unlock the vault. Neither your passphrase nor the coin is ever stored — only encrypted
+            copies of the Master Key are kept.
+        </div>
+    </div>
+
+    <!-- ---- Restore-from-file form ---- -->
+    <div class="login-card" id="restoreCard" style="display:none;">
+        <div class="login-brand"><div class="login-dot"></div><span class="login-title">Restore Vault From File</span></div>
+        <div class="login-sub">Every <code>.bizvault</code> file carries its own encrypted copy of the Master Key, so this browser's storage does not need to still hold your account for you to get back in.</div>
+        <form id="restoreForm">
+            <label>Select any .bizvault file from this vault</label>
+            <input type="file" id="restoreFileInput" accept=".bizvault" required>
+            <label>Unlock with</label>
+            <select id="restoreSecretType">
+                <option value="passphrase">My original passphrase</option>
+                <option value="coin">My recovery coin</option>
+            </select>
+            <label id="restoreSecretLabel">Original Passphrase</label>
+            <div class="field-with-eye">
+                <input type="password" id="restoreSecret" placeholder="Enter the secret" required>
+                <button type="button" class="eye-btn" id="eyeRestoreSecret">👁</button>
+            </div>
+            <label>New Passphrase (to use going forward)</label>
+            <div class="field-with-eye">
+                <input type="password" id="restoreNewPass" placeholder="Set a new passphrase" required>
+                <button type="button" class="eye-btn" id="eyeRestoreNewPass">👁</button>
+            </div>
+            <button type="submit" class="primary">Restore Vault</button>
+            <div class="login-error" id="restoreError"></div>
+        </form>
+        <button type="button" class="link-btn" id="showCreateLink">Back to create a new vault</button>
+    </div>
+
+    <!-- ---- Normal login form (shown when an account already exists locally) ---- -->
+    <div class="login-card" id="loginCard" style="display:none;">
+        <div class="login-brand"><div class="login-dot"></div><span class="login-title">Enterprise Business Vault</span></div>
+        <div class="login-sub">Vault Owner: <span class="owner-static" id="loginOwnerName">—</span></div>
+        <form id="loginForm">
+            <label>Passphrase</label>
+            <div class="field-with-eye">
+                <input type="password" id="loginPass" placeholder="Passphrase" autocomplete="current-password" required>
+                <button type="button" class="eye-btn" id="eyeLoginPass">👁</button>
+            </div>
+            <button type="submit" class="primary">Enter System</button>
+            <div class="login-error" id="loginError"></div>
+            <div id="attemptsIndicator"></div>
+        </form>
+        <button type="button" class="link-btn" id="showRecoverLink">Forgot your passphrase? Use your recovery coin</button>
+        <div class="login-note">
+            This browser recognizes this vault. Ten wrong passphrases in a row and it warns you; twenty and it
+            locks the vault entirely — only the recovery coin can open it again after that.
+        </div>
+    </div>
+
+    <!-- ---- Recovery-coin form (voluntary "forgot passphrase") ---- -->
+    <div class="login-card" id="recoverCard" style="display:none;">
+        <div class="login-brand"><div class="login-dot"></div><span class="login-title">Recover With Coin</span></div>
+        <div class="login-sub">Paste the recovery coin you were shown when this vault was created.</div>
+        <form id="recoverForm">
+            <label>Recovery Coin</label>
+            <div class="field-with-eye">
+                <input type="password" id="recoverCoinInput" placeholder="XXXX-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX" required>
+                <button type="button" class="eye-btn" id="eyeRecoverCoin">👁</button>
+            </div>
+            <button type="submit" class="primary">Unlock With Coin</button>
+            <div class="login-error" id="recoverError"></div>
+        </form>
+        <button type="button" class="link-btn" id="backToLoginLink">Back to passphrase login</button>
+    </div>
+
+    <!-- ---- Locked-out screen (forced after 20 failed attempts) ---- -->
+    <div class="login-card locked-card" id="lockedCard" style="display:none;">
+        <div class="login-brand"><div class="login-dot danger-dot"></div><span class="login-title" style="color:var(--danger);">Vault Locked</span></div>
+        <div class="login-sub">Too many incorrect passphrase attempts. The passphrase can no longer be tried on this vault — only the recovery coin can unlock it.</div>
+        <form id="lockedForm">
+            <label>Recovery Coin</label>
+            <div class="field-with-eye">
+                <input type="password" id="lockedCoinInput" placeholder="XXXX-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX" required>
+                <button type="button" class="eye-btn" id="eyeLockedCoin">👁</button>
+            </div>
+            <button type="submit" class="primary danger-btn">Unlock With Coin</button>
+            <div class="login-error" id="lockedError"></div>
+        </form>
+    </div>
+
+    <!-- ---- Set-new-passphrase form (shown right after a successful coin recovery) ---- -->
+    <div class="login-card" id="newPassCard" style="display:none;">
+        <div class="login-brand"><div class="login-dot"></div><span class="login-title">Set A New Passphrase</span></div>
+        <div class="login-sub">Coin accepted. Choose a new passphrase for normal logins going forward. Your recovery coin stays the same unless you regenerate it later in Admin Mode.</div>
+        <form id="newPassForm">
+            <label>New Passphrase</label>
+            <div class="field-with-eye">
+                <input type="password" id="newPassInput" placeholder="Choose a new passphrase" required>
+                <button type="button" class="eye-btn" id="eyeNewPass">👁</button>
+            </div>
+            <button type="submit" class="primary">Save &amp; Enter System</button>
+            <div class="login-error" id="newPassError"></div>
+        </form>
+    </div>
+</div>
+
+<!-- ================= ONE-TIME COIN DISPLAY MODAL ================= -->
+<div class="modal-overlay" id="coinModal">
+    <div class="modal-box">
+        <h3>🪙 Your Recovery Coin</h3>
+        <div class="coin-warning">
+            This is shown <strong>once</strong>. Write it down and keep it somewhere offline — a safe, a locked
+            drawer, a printed copy. Anyone holding this coin can unlock this vault. If you lose both this coin
+            and your passphrase, nothing can recover your files — there is no backdoor.
+        </div>
+        <div class="field-with-eye" style="margin-bottom:6px;">
+            <div class="coin-box" id="coinDisplayText" style="flex:1;">••••••••••••••••••••••••••••••••••••••</div>
+            <button type="button" class="eye-btn" id="eyeCoinDisplay">🙈</button>
+        </div>
+        <button type="button" class="action-btn secondary-btn" id="downloadCoinBtn" style="width:100%; margin-top:6px;">⬇ Download Coin As Text File</button>
+        <div class="checkbox-row">
+            <input type="checkbox" id="coinSavedCheckbox">
+            <label for="coinSavedCheckbox" style="margin:0; font-weight:600;">I have written down or securely stored this coin offline.</label>
+        </div>
+        <div class="modal-actions">
+            <button class="action-btn success-btn" id="coinModalContinueBtn" disabled>Continue Into Vault</button>
+        </div>
+    </div>
+</div>
+
+<!-- ================= ADMIN MODE RE-AUTH MODAL ================= -->
+<div class="modal-overlay" id="adminAuthModal">
+    <div class="modal-box">
+        <h3 class="admin-h">🔓 Enter Admin Mode</h3>
+        <p style="font-size:0.85rem; color:var(--text-dim);">Re-enter your passphrase to unlock administrative controls (owner record, lockout reset, coin regeneration, raw account data, source code editor). Admin Mode automatically turns off after 5 minutes of inactivity.</p>
+        <label>Passphrase</label>
+        <div class="field-with-eye">
+            <input type="password" id="adminAuthPass" placeholder="Passphrase">
+            <button type="button" class="eye-btn" id="eyeAdminAuthPass">👁</button>
+        </div>
+        <div class="login-error" id="adminAuthError"></div>
+        <div class="modal-actions">
+            <button class="action-btn admin-btn" id="adminAuthConfirmBtn">Unlock Admin Mode</button>
+            <button class="action-btn secondary-btn" id="adminAuthCancelBtn">Cancel</button>
+        </div>
+    </div>
+</div>
+
+<!-- ================= NEW COIN REGENERATION RESULT MODAL (reuses coin box styling) ================= -->
+<div class="modal-overlay" id="regenCoinModal">
+    <div class="modal-box">
+        <h3>🪙 New Recovery Coin Generated</h3>
+        <div class="coin-warning">
+            Your old recovery coin no longer unlocks this vault's <em>account record</em> going forward. Note:
+            any already-saved <code>.bizvault</code> files still carry the OLD coin's wrapped key internally until
+            they next go through a Freshness &amp; Integrity cycle — run one after this if you want every file
+            updated to the new coin immediately.
+        </div>
+        <div class="field-with-eye" style="margin-bottom:6px;">
+            <div class="coin-box" id="regenCoinDisplayText" style="flex:1;">••••••••••••••••••••••••••••••••••••••</div>
+            <button type="button" class="eye-btn" id="eyeRegenCoinDisplay">🙈</button>
+        </div>
+        <button type="button" class="action-btn secondary-btn" id="downloadRegenCoinBtn" style="width:100%; margin-top:6px;">⬇ Download Coin As Text File</button>
+        <div class="modal-actions">
+            <button class="action-btn success-btn" id="regenCoinCloseBtn">Done</button>
+        </div>
+    </div>
+</div>
+
+<!-- Freshness warning modal -->
+<div class="modal-overlay" id="freshnessModal">
+    <div class="modal-box">
+        <h3>⚠ Data Refresh Needed</h3>
+        <p id="freshnessModalText">Some stored files haven't been re-verified within the freshness threshold.</p>
+        <div class="modal-actions">
+            <button class="action-btn" id="modalRunNowBtn">Run Freshness Check Now</button>
+            <button class="action-btn secondary-btn" id="modalDismissBtn">Dismiss</button>
+        </div>
+    </div>
+</div>
+
+<!-- ================= MAIN APP ================= -->
+<div id="app">
+<div class="container">
+    <header>
+        <div>
+            <h1 style="margin:0; font-size: 1.4rem; color: var(--accent);">Enterprise Business Vault</h1>
+            <span style="font-size: 0.8rem; color: var(--text-dim);">Vault Owner: <strong id="ownerHeaderName">—</strong> · Real AES-256-GCM · real file storage · real freshness cycle</span>
+        </div>
+        <div class="header-actions">
+            <span class="operator-badge" id="operatorBadge">Signed in</span>
+            <button class="tab-btn admin-toggle-btn" id="adminToggleBtn">🔒 Admin Mode</button>
+            <button class="tab-btn" id="chooseStorageBtn">📁 Choose Storage Location</button>
+        </div>
+    </header>
+
+    <div class="admin-banner" id="adminBanner">
+        <span>🔓 ADMIN MODE ACTIVE — administrative controls unlocked. Turns off automatically after 5 minutes of inactivity.</span>
+        <button class="action-btn secondary-btn" id="adminExitBtn" style="padding:4px 12px; font-size:0.75rem;">Exit Now</button>
+    </div>
+
+    <div class="tabs">
+        <button class="tab-btn active" data-tab="identity">1. Identity &amp; Timestamp</button>
+        <button class="tab-btn" data-tab="business">2. Business Suite</button>
+        <button class="tab-btn" data-tab="filesystem">3. File System &amp; Vault</button>
+        <button class="tab-btn" data-tab="datamap">4. Data Map &amp; Manifest</button>
+        <button class="tab-btn" data-tab="freshness">5. Freshness &amp; Integrity</button>
+        <button class="tab-btn" data-tab="remote">6. Remote Endpoint (Advanced)</button>
+        <button class="tab-btn admin-tab" data-tab="admin">7. Admin &amp; Recovery 🔒</button>
+        <button class="tab-btn admin-tab" data-tab="codeeditor">8. Code Inspector &amp; Editor 🔒</button>
+    </div>
+
+    <!-- Tab 1: Identity -->
+    <div id="tab-identity" class="tab-content active">
+        <h2>Identity &amp; Real-Time Timestamp</h2>
+        <p style="color:var(--text-dim); font-size:0.9rem;">Your vault owner identity and this session's clock — the clock is a real, ticking <code>Date</code> object, not a static string.</p>
+        <div class="grid-2">
+            <div>
+                <div class="form-group"><label>Vault Owner</label><div id="identityOperator" style="font-weight:700;">—</div></div>
+                <div class="form-group"><label>Session started</label><div id="identitySessionStart">—</div></div>
+            </div>
+            <div>
+                <div class="form-group">
+                    <label>Live Clock</label>
+                    <div id="liveClock" style="font-family:monospace; font-size:1.4rem; font-weight:700;">—</div>
+                </div>
+                <div class="form-group">
+                    <label>Timezone Mode</label>
+                    <select id="timezoneMode">
+                        <option value="local">Local System Time</option>
+                        <option value="utc">Universal Coordinated Time (UTC)</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tab 2: Business Suite -->
+    <div id="tab-business" class="tab-content">
+        <h2>Enterprise Business Suite</h2>
+        <p style="color:var(--text-dim); font-size:0.9rem;">Plain business records. Saved to this browser's real local storage as you type — reload the page and they're still here.</p>
+        <div class="grid-2">
+            <div>
+                <div class="form-group"><label>Entity Legal Name</label><input type="text" id="busEntityName" placeholder="Entity name"></div>
+                <div class="form-group">
+                    <label>Optional Taxpayer ID</label>
+                    <div class="field-with-eye">
+                        <input type="password" id="busTaxId" placeholder="Optional">
+                        <button type="button" class="eye-btn" id="eyeBusTaxId">👁</button>
+                    </div>
+                </div>
+            </div>
+            <div>
+                <div class="form-group"><label>Data Payload Format Label</label><input type="text" id="busFormat" placeholder="e.g. Internal Records Container"></div>
+                <div class="form-group"><label>Notes</label><input type="text" id="busNotes" placeholder="Optional notes"></div>
+            </div>
+        </div>
+        <div id="businessSaveStatus" style="font-size:0.8rem; color: var(--success); font-weight:600;"></div>
+    </div>
+
+    <!-- Tab 3: File System & Vault -->
+    <div id="tab-filesystem" class="tab-content">
+        <h2>File System &amp; Vault (Workspace)</h2>
+        <p style="color:var(--text-dim); font-size:0.9rem;">Load a file, then encode it into a real encrypted <code>.bizvault</code> file. Each file now carries its own encrypted copy of the Master Key (locked by both your passphrase and your recovery coin), so the file alone can be restored later even if this browser's storage is wiped.</p>
+
+        <div class="grid-2" style="margin-bottom:20px;">
+            <div>
+                <label>Load a plain file</label>
+                <input type="file" id="localFileInput">
+            </div>
+            <div>
+                <label>Load an existing <code>.bizvault</code> file</label>
+                <input type="file" id="vaultFileInput" accept=".bizvault">
+            </div>
+        </div>
+
+        <div class="grid-2">
+            <div>
+                <label>Registry</label>
+                <ul id="fileRegistryList" class="file-list-view"></ul>
+                <div style="margin-top:12px; display:flex; gap:8px; flex-wrap:wrap;">
+                    <button class="action-btn" id="encodeSelectedBtn">Encode Selected → Save Vault File</button>
+                </div>
+            </div>
+            <div>
+                <label>Preview</label>
+                <div id="fileViewerStage" class="viewer-stage"><div style="color:var(--text-dim);">Select a file to preview.</div></div>
+            </div>
+        </div>
+        <div id="fileLog" class="meta-log">[FILE SYSTEM] Ready...</div>
+    </div>
+
+    <!-- Tab 4: Data Map -->
+    <div id="tab-datamap" class="tab-content">
+        <h2>Data Map &amp; Manifest</h2>
+        <p style="color:var(--text-dim); font-size:0.9rem;">Real per-file status — sizes, timestamps, and freshness are computed live from actual data, not filled in for show.</p>
+        <table class="data-table">
+            <thead><tr><th>Name</th><th>Size</th><th>Status</th><th>Created</th><th>Last Verified</th><th>Freshness</th></tr></thead>
+            <tbody id="manifestBody"></tbody>
+        </table>
+    </div>
+
+    <!-- Tab 5: Freshness & Integrity -->
+    <div id="tab-freshness" class="tab-content">
+        <h2>Freshness &amp; Integrity Cycle</h2>
+        <p style="color:var(--text-dim); font-size:0.9rem; max-width:760px;">
+            On a real interval, each encrypted asset is <strong>extracted</strong> (decrypted with the session's Master Key),
+            <strong>checked</strong> (CRC32 of the plaintext recomputed and compared against the value stored at
+            encode time — on top of the authentication tag AES-GCM already checks on every decrypt), and then
+            <strong>cold-stored again</strong> (re-encrypted with a freshly generated IV, with a fresh embedded copy of
+            the current passphrase/coin wrap blocks, and rewritten to your chosen storage location).
+        </p>
+        <div class="how-it-works">
+            <strong>On "industry standard":</strong> there isn't one single universal number every industry body
+            mandates for data-freshness/integrity re-checks — it varies by data type and risk tolerance (common
+            reference points range from daily integrity scrubs to weekly/monthly backup verification). The default
+            below (24 hours) is a reasonable, commonly-used convention for this kind of check-in cycle, and it's
+            configurable — this is not being presented as a fixed law.
+        </div>
+        <div class="grid-2" style="margin-top:15px;">
+            <div class="form-group"><label>Freshness threshold (hours)</label><input type="number" id="thresholdHours" value="24" min="1"></div>
+            <div class="form-group"><label>Background scan interval (real, seconds)</label><input type="number" id="scanIntervalSeconds" value="30" min="5"></div>
+        </div>
+        <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:15px;">
+            <button class="action-btn" id="runFreshnessNowBtn">Run Freshness Check Now (all assets)</button>
+        </div>
+        <div id="freshnessLog" class="meta-log">[FRESHNESS] Waiting for encrypted assets...</div>
+    </div>
+
+    <!-- Tab 6: Remote Endpoint -->
+    <div id="tab-remote" class="tab-content">
+        <h2>Remote Endpoint (Advanced)</h2>
+        <div class="how-it-works">
+            <strong>Honest limit:</strong> a static page like this one cannot log into Dropbox, Google Drive, or
+            OneDrive directly — those require a real OAuth flow and a registered app, which this file doesn't have.
+            What it <em>can</em> do for real: send an actual HTTP request to any URL you provide that accepts
+            cross-origin requests (e.g. your own server, a webhook, an S3 pre-signed URL). The result shown below is
+            the real HTTP response or the real error — never a fabricated "success."
+        </div>
+        <div class="form-group" style="margin-top:15px;"><label>Endpoint URL</label><input type="text" id="remoteUrl" placeholder="https://your-real-endpoint.example.com/upload"></div>
+        <div class="form-group">
+            <label>Method</label>
+            <select id="remoteMethod"><option value="PUT">PUT</option><option value="POST">POST</option></select>
+        </div>
+        <button class="action-btn" id="remoteTestBtn">Send Test Payload</button>
+        <div id="remoteResult" class="meta-log" style="margin-top:15px;">[REMOTE] No request sent yet.</div>
+    </div>
+
+    <!-- Tab 7: Admin & Recovery -->
+    <div id="tab-admin" class="tab-content">
+        <div id="adminLockedPanel" class="admin-locked-panel">
+            <div class="lock-icon">🔒</div>
+            <p>Owner identity, lockout controls, recovery coin management, and the raw account record are only visible in Admin Mode.</p>
+            <button class="action-btn admin-btn" id="adminTabEnterBtn">Enter Admin Mode</button>
+        </div>
+        <div id="adminUnlockedPanel" style="display:none;">
+            <h2>Owner Identity</h2>
+            <div class="admin-field-row"><label style="width:140px; margin:0;">Owner Name</label><div class="mono-block" id="adminOwnerName">—</div></div>
+            <div class="admin-field-row">
+                <label style="width:140px; margin:0;">Owner ID</label>
+                <div class="mono-block" id="adminOwnerId">••••••••••••••••••••••••••••••••••••</div>
+                <button type="button" class="eye-btn" id="eyeAdminOwnerId">👁</button>
+            </div>
+            <div class="admin-field-row"><label style="width:140px; margin:0;">Vault Created</label><div class="mono-block" id="adminCreatedAt">—</div></div>
+
+            <h2 style="margin-top:28px;">Security Status</h2>
+            <div class="admin-field-row"><label style="width:180px; margin:0;">Failed Attempts</label><div class="mono-block" id="adminFailedAttempts">0 / 20</div></div>
+            <button class="action-btn secondary-btn" id="adminResetLockoutBtn">Reset Lockout Counter</button>
+
+            <h2 style="margin-top:28px;">Recovery Coin</h2>
+            <p style="font-size:0.85rem; color:var(--text-dim);">Regenerating replaces the coin-based key slot with a brand new random coin. Your passphrase is unaffected.</p>
+            <button class="action-btn admin-btn" id="adminRegenCoinBtn">🪙 Regenerate Recovery Coin</button>
+
+            <h2 style="margin-top:28px;">Raw Account Record</h2>
+            <div class="admin-field-row">
+                <button type="button" class="eye-btn" id="eyeAdminRawJson">👁 Show</button>
+            </div>
+            <div class="raw-json-block" id="adminRawJson" style="display:none;"></div>
+        </div>
+    </div>
+
+    <!-- Tab 8: Code Inspector -->
+    <div id="tab-codeeditor" class="tab-content">
+        <div id="codeLockedPanel" class="admin-locked-panel">
+            <div class="lock-icon">🔒</div>
+            <p>Viewing or editing this page's own source requires Admin Mode.</p>
+            <button class="action-btn admin-btn" id="codeTabEnterBtn">Enter Admin Mode</button>
+        </div>
+        <div id="codeUnlockedPanel" style="display:none;">
+            <h2>Full Code Inspector &amp; Editor</h2>
+            <p style="color:var(--text-dim); font-size:0.9rem;">This really is the live page's own source. Edit it and either download the copy or open it as a new live tab — both trigger a real file, not a message.</p>
+            <div style="display:flex; gap:10px; margin-bottom:15px; flex-wrap:wrap; align-items:center;">
+                <button class="action-btn secondary-btn" id="saveEditCopyBtn">Save Edited Copy (.html)</button>
+                <button class="action-btn success-btn" id="activateNewPageBtn">Open Edited Copy in New Tab</button>
+                <span id="saveEditStatus" style="font-size:0.85rem; font-weight:700; color:var(--success);"></span>
+            </div>
+            <textarea id="fullSourceCodeEditor" rows="16" style="font-family:monospace; font-size:0.78rem; background:#0f172a; color:#38bdf8; padding:15px;"></textarea>
+        </div>
+    </div>
+</div>
+</div>
+
+<script>
+'use strict';
+
+/* =====================================================================
+ * Enterprise Business Vault
+ * Real Web Crypto AES-256-GCM, real PBKDF2 key derivation, real CRC32,
+ * real File System Access API writes where supported, and a real
+ * elapsed-time freshness scan. No button here prints a canned "success"
+ * string without the real work behind it actually having happened.
+ *
+ * Key architecture: a single random "Master Key" actually encrypts every
+ * file. That Master Key is never stored in the clear. Two independent
+ * wrapped copies of it are kept: one unlocked by the passphrase, one
+ * unlocked by a one-time "recovery coin". Either secret alone is enough
+ * to recover the Master Key. Every .bizvault file embeds its own fresh
+ * copies of both wrapped blocks, so a single exported file is enough to
+ * rebuild the vault account even if this browser's storage is wiped.
+ * ===================================================================== */
+
+// ---------------- CRC32 (same algorithm PNG/ZIP use) ----------------
+function crc32(bytes) {
+    let table = crc32.table || (crc32.table = (() => {
+        const t = [];
+        for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1); t[n] = c; }
+        return t;
+    })());
+    let crc = 0xFFFFFFFF;
+    for (let i = 0; i < bytes.length; i++) crc = table[(crc ^ bytes[i]) & 0xFF] ^ (crc >>> 8);
+    return (crc ^ 0xFFFFFFFF) >>> 0;
+}
+
+// ---------------- base64 helpers ----------------
+function bufToB64(buf) { return btoa(String.fromCharCode(...new Uint8Array(buf))); }
+function b64ToBuf(b64) { return Uint8Array.from(atob(b64), c => c.charCodeAt(0)); }
+
+// ---------------- base32 helpers (for the human-typeable recovery coin) ----------------
+const B32_ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+function toBase32(bytes) {
+    let bits = 0, value = 0, output = '';
+    for (let i = 0; i < bytes.length; i++) {
+        value = (value << 8) | bytes[i];
+        bits += 8;
+        while (bits >= 5) { output += B32_ALPHABET[(value >>> (bits - 5)) & 31]; bits -= 5; }
+    }
+    if (bits > 0) output += B32_ALPHABET[(value << (5 - bits)) & 31];
+    return output;
+}
+function formatCoin(bytes) { return toBase32(bytes).match(/.{1,4}/g).join('-'); }
+function normalizeCoin(str) { return str.replace(/[\s-]/g, '').toUpperCase(); }
+
+// ---------------- real crypto (Web Crypto API) ----------------
+const VaultCrypto = { available: typeof window !== 'undefined' && window.isSecureContext && window.crypto && window.crypto.subtle };
+
+async function deriveWrapKey(secret, salt) {
+    const bytes = typeof secret === 'string' ? new TextEncoder().encode(secret) : secret;
+    const km = await crypto.subtle.importKey('raw', bytes, 'PBKDF2', false, ['deriveKey']);
+    return crypto.subtle.deriveKey({ name: 'PBKDF2', salt, iterations: 250000, hash: 'SHA-256' }, km, { name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']);
+}
+async function wrapMasterKey(masterKeyRaw, secret) {
+    const salt = crypto.getRandomValues(new Uint8Array(16));
+    const iv = crypto.getRandomValues(new Uint8Array(12));
+    const key = await deriveWrapKey(secret, salt);
+    const wrapped = new Uint8Array(await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, masterKeyRaw));
+    return { salt, iv, wrapped };
+}
+async function unwrapMasterKey(secret, salt, iv, wrapped) {
+    const key = await deriveWrapKey(secret, salt);
+    return new Uint8Array(await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, wrapped)); // throws on wrong secret
+}
+async function importSessionKey(masterKeyRaw) {
+    return crypto.subtle.importKey('raw', masterKeyRaw, { name: 'AES-GCM' }, false, ['encrypt', 'decrypt']);
+}
+
+// ---------------- session state (all in-memory only, never persisted) ----------------
+let account = null;          // the account record loaded from / written to localStorage
+let sessionKey = null;       // CryptoKey — the Master Key, ready for AES-GCM encrypt/decrypt
+let ownerAAD = null;         // Uint8Array — binds every file's ciphertext to this owner via AES-GCM AAD
+let sessionStart = null;
+let adminMode = false;
+let adminModeTimer = null;
+let pendingRecoveredMasterKeyRaw = null; // used only during the "set new passphrase after coin recovery" step
+
+const ACCOUNT_KEY = 'bizVaultAccount_v2';
+
+function log(elId, msg, cls) {
+    const el = document.getElementById(elId);
+    if (!el) return;
+    const ts = new Date().toTimeString().split(' ')[0];
+    const line = document.createElement('div');
+    if (cls) line.style.color = cls;
+    line.textContent = `[${ts}] ${msg}`;
+    el.appendChild(line);
+    el.scrollTop = el.scrollHeight;
+}
+
+function saveAccount() { localStorage.setItem(ACCOUNT_KEY, JSON.stringify(account)); }
+function loadAccount() { try { return JSON.parse(localStorage.getItem(ACCOUNT_KEY) || 'null'); } catch { return null; } }
+
+// ---------------- .bizvault file format "BIZV2" ----------------
+// magic(5="BIZV2") + ownerNameLen(1)+ownerNameBytes + ownerId(36) + createdAt(24)
+//   + pSalt(16)+pIv(12)+pWrapped(48)     <- Master Key wrapped by passphrase
+//   + cSalt(16)+cIv(12)+cWrapped(48)     <- Master Key wrapped by recovery coin
+//   + fileIv(12) + ciphertext(rest)      <- actual file content, encrypted with the Master Key, AAD = ownerId|createdAt
+// plaintext (before encryption) = nameLen(1) + nameBytes + origLen(4) + crc32(4) + fileBytes
+
+async function encodeAsset(fileBytes, filename) {
+    const nameBytes = new TextEncoder().encode(filename);
+    const crc = crc32(fileBytes);
+    const header = new Uint8Array(1 + nameBytes.length + 4 + 4);
+    let o = 0;
+    header[o] = nameBytes.length; o += 1;
+    header.set(nameBytes, o); o += nameBytes.length;
+    new DataView(header.buffer).setUint32(o, fileBytes.length, false); o += 4;
+    new DataView(header.buffer).setUint32(o, crc, false); o += 4;
+    const plain = new Uint8Array(header.length + fileBytes.length);
+    plain.set(header, 0); plain.set(fileBytes, header.length);
+
+    const fileIv = crypto.getRandomValues(new Uint8Array(12));
+    const ct = new Uint8Array(await crypto.subtle.encrypt({ name: 'AES-GCM', iv: fileIv, additionalData: ownerAAD }, sessionKey, plain));
+
+    const magic = new TextEncoder().encode('BIZV2');
+    const ownerNameBytes = new TextEncoder().encode(account.ownerName).slice(0, 255);
+    const ownerIdBytes = new TextEncoder().encode(account.ownerId);       // 36 bytes (UUID)
+    const createdAtBytes = new TextEncoder().encode(account.createdAt);   // 24 bytes (ISO string)
+    const pSalt = b64ToBuf(account.passphraseSalt), pIv = b64ToBuf(account.passphraseWrapIv), pWrapped = b64ToBuf(account.passphraseWrappedKey);
+    const cSalt = b64ToBuf(account.coinSalt), cIv = b64ToBuf(account.coinWrapIv), cWrapped = b64ToBuf(account.coinWrappedKey);
+
+    const out = new Uint8Array(5 + 1 + ownerNameBytes.length + 36 + 24 + 16 + 12 + 48 + 16 + 12 + 48 + 12 + ct.length);
+    let p = 0;
+    out.set(magic, p); p += 5;
+    out[p] = ownerNameBytes.length; p += 1;
+    out.set(ownerNameBytes, p); p += ownerNameBytes.length;
+    out.set(ownerIdBytes, p); p += 36;
+    out.set(createdAtBytes, p); p += 24;
+    out.set(pSalt, p); p += 16;
+    out.set(pIv, p); p += 12;
+    out.set(pWrapped, p); p += 48;
+    out.set(cSalt, p); p += 16;
+    out.set(cIv, p); p += 12;
+    out.set(cWrapped, p); p += 48;
+    out.set(fileIv, p); p += 12;
+    out.set(ct, p);
+    return out;
+}
+
+function parseBizvaultHeader(raw) {
+    const dec = new TextDecoder();
+    let p = 0;
+    const magic = dec.decode(raw.slice(0, 5)); p += 5;
+    if (magic !== 'BIZV2') throw new Error('Not a recognized .bizvault file (bad magic bytes).');
+    const nameLen = raw[p]; p += 1;
+    const ownerName = dec.decode(raw.slice(p, p + nameLen)); p += nameLen;
+    const ownerId = dec.decode(raw.slice(p, p + 36)); p += 36;
+    const createdAt = dec.decode(raw.slice(p, p + 24)); p += 24;
+    const pSalt = raw.slice(p, p + 16); p += 16;
+    const pIv = raw.slice(p, p + 12); p += 12;
+    const pWrapped = raw.slice(p, p + 48); p += 48;
+    const cSalt = raw.slice(p, p + 16); p += 16;
+    const cIv = raw.slice(p, p + 12); p += 12;
+    const cWrapped = raw.slice(p, p + 48); p += 48;
+    const fileIv = raw.slice(p, p + 12); p += 12;
+    const ct = raw.slice(p);
+    return { ownerName, ownerId, createdAt, pSalt, pIv, pWrapped, cSalt, cIv, cWrapped, fileIv, ct };
+}
+
+// Normal in-session decode: uses the already-unlocked Master Key (sessionKey), fast path.
+async function decodeAsset(raw) {
+    const h = parseBizvaultHeader(raw);
+    const aad = new TextEncoder().encode(h.ownerId + '|' + h.createdAt);
+    const plain = new Uint8Array(await crypto.subtle.decrypt({ name: 'AES-GCM', iv: h.fileIv, additionalData: aad }, sessionKey, h.ct)); // throws if wrong vault/tampered
+    let o = 0;
+    const nameLen = plain[o]; o += 1;
+    const name = new TextDecoder().decode(plain.slice(o, o + nameLen)); o += nameLen;
+    const dv = new DataView(plain.buffer, plain.byteOffset);
+    const origLen = dv.getUint32(o, false); o += 4;
+    const storedCrc = dv.getUint32(o, false); o += 4;
+    const fileBytes = plain.slice(o, o + origLen);
+    const actualCrc = crc32(fileBytes);
+    return { name, fileBytes, storedCrc, actualCrc, crcOk: actualCrc === storedCrc };
+}
+
+// Standalone restore path: given ONLY a raw .bizvault file plus the passphrase or the coin,
+// recover the Master Key without needing anything from this browser's localStorage.
+async function restoreMasterKeyFromFile(raw, secret, secretType) {
+    const h = parseBizvaultHeader(raw);
+    let masterKeyRaw;
+    if (secretType === 'passphrase') masterKeyRaw = await unwrapMasterKey(secret, h.pSalt, h.pIv, h.pWrapped);
+    else masterKeyRaw = await unwrapMasterKey(normalizeCoin(secret), h.cSalt, h.cIv, h.cWrapped);
+    return {
+        masterKeyRaw, ownerName: h.ownerName, ownerId: h.ownerId, createdAt: h.createdAt,
+        coinSalt: bufToB64(h.cSalt), coinWrapIv: bufToB64(h.cIv), coinWrappedKey: bufToB64(h.cWrapped)
+    };
+}
+
+// ---------------- account creation ----------------
+async function createAccount(ownerName, passphrase) {
+    const masterKeyRaw = crypto.getRandomValues(new Uint8Array(32));
+    const pWrap = await wrapMasterKey(masterKeyRaw, passphrase);
+    const coinBytes = crypto.getRandomValues(new Uint8Array(20));
+    const coinString = formatCoin(coinBytes);
+    const cWrap = await wrapMasterKey(masterKeyRaw, normalizeCoin(coinString));
+
+    account = {
+        ownerId: crypto.randomUUID(),
+        ownerName,
+        createdAt: new Date().toISOString(),
+        passphraseSalt: bufToB64(pWrap.salt), passphraseWrapIv: bufToB64(pWrap.iv), passphraseWrappedKey: bufToB64(pWrap.wrapped),
+        coinSalt: bufToB64(cWrap.salt), coinWrapIv: bufToB64(cWrap.iv), coinWrappedKey: bufToB64(cWrap.wrapped),
+        failedAttempts: 0, locked: false, lockoutAt: null
+    };
+    saveAccount();
+    await enterSessionWithMasterKey(masterKeyRaw);
+    return coinString;
+}
+
+async function enterSessionWithMasterKey(masterKeyRaw) {
+    sessionKey = await importSessionKey(masterKeyRaw);
+    ownerAAD = new TextEncoder().encode(account.ownerId + '|' + account.createdAt);
+    sessionStart = new Date();
+}
+
+// ---------------- passphrase login ----------------
+async function loginWithPassphrase(passphrase) {
+    const salt = b64ToBuf(account.passphraseSalt), iv = b64ToBuf(account.passphraseWrapIv), wrapped = b64ToBuf(account.passphraseWrappedKey);
+    let masterKeyRaw;
+    try {
+        masterKeyRaw = await unwrapMasterKey(passphrase, salt, iv, wrapped);
+    } catch {
+        account.failedAttempts = (account.failedAttempts || 0) + 1;
+        if (account.failedAttempts >= 20) { account.locked = true; account.lockoutAt = new Date().toISOString(); }
+        saveAccount();
+        throw new Error(account.locked ? 'LOCKED' : `Incorrect passphrase. (${account.failedAttempts}/20 attempts before lockout.)`);
+    }
+    account.failedAttempts = 0;
+    saveAccount();
+    await enterSessionWithMasterKey(masterKeyRaw);
+}
+
+// ---------------- coin recovery ----------------
+async function recoverWithCoin(coinInput) {
+    const salt = b64ToBuf(account.coinSalt), iv = b64ToBuf(account.coinWrapIv), wrapped = b64ToBuf(account.coinWrappedKey);
+    const masterKeyRaw = await unwrapMasterKey(normalizeCoin(coinInput), salt, iv, wrapped); // throws if wrong coin
+    account.failedAttempts = 0; account.locked = false; account.lockoutAt = null;
+    saveAccount();
+    return masterKeyRaw;
+}
+
+async function finishSettingNewPassphrase(newPassphrase, masterKeyRaw) {
+    const pWrap = await wrapMasterKey(masterKeyRaw, newPassphrase);
+    account.passphraseSalt = bufToB64(pWrap.salt);
+    account.passphraseWrapIv = bufToB64(pWrap.iv);
+    account.passphraseWrappedKey = bufToB64(pWrap.wrapped);
+    saveAccount();
+    await enterSessionWithMasterKey(masterKeyRaw);
+}
+
+// =====================================================================
+// LOGIN SCREEN WIRING
+// =====================================================================
+function showLoginPanel(id) {
+    ['createCard', 'restoreCard', 'loginCard', 'recoverCard', 'lockedCard', 'newPassCard'].forEach(cid => {
+        document.getElementById(cid).style.display = (cid === id) ? 'block' : 'none';
+    });
+}
+
+function initLoginScreen() {
+    account = loadAccount();
+    if (!VaultCrypto.available) {
+        document.getElementById('createError').textContent = 'This browser/context does not support the Web Crypto API needed for real encryption (needs https or localhost).';
+    }
+    if (!account) { showLoginPanel('createCard'); return; }
+    if (account.locked) { showLoginPanel('lockedCard'); return; }
+    document.getElementById('loginOwnerName').textContent = account.ownerName;
+    showLoginPanel('loginCard');
+}
+
+// --- eye toggles (generic) ---
+function wireEye(btnId, inputId) {
+    const btn = document.getElementById(btnId), input = document.getElementById(inputId);
+    if (!btn || !input) return;
+    btn.addEventListener('click', () => {
+        const hidden = input.type === 'password';
+        input.type = hidden ? 'text' : 'password';
+        btn.textContent = hidden ? '🙈' : '👁';
+    });
+}
+['CreatePass', 'CreatePassConfirm', 'RestoreSecret', 'RestoreNewPass', 'LoginPass', 'RecoverCoin', 'LockedCoin', 'NewPass', 'AdminAuthPass'].forEach(name => {
+    wireEye('eye' + name, name.charAt(0).toLowerCase() + name.slice(1) + (name.includes('Coin') ? 'Input' : ''));
+});
+// (Tax ID / owner id / raw json use dedicated handlers below since they aren't plain <input> reveal-in-place cases)
+
+// --- create account ---
+document.getElementById('createForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const errEl = document.getElementById('createError'); errEl.textContent = '';
+    const name = document.getElementById('createOwnerName').value.trim();
+    const pass = document.getElementById('createPass').value;
+    const confirm = document.getElementById('createPassConfirm').value;
+    if (!VaultCrypto.available) { errEl.textContent = 'Web Crypto API not available in this context.'; return; }
+    if (!name || !pass) { errEl.textContent = 'Enter an owner name and a passphrase.'; return; }
+    if (pass !== confirm) { errEl.textContent = 'Passphrases do not match.'; return; }
+    try {
+        const coin = await createAccount(name, pass);
+        openCoinModal(coin, () => enterApp());
+    } catch (err) {
+        errEl.textContent = 'Could not create vault: ' + err.message;
+    }
+});
+
+// --- restore from file ---
+document.getElementById('showRestoreLink').addEventListener('click', () => showLoginPanel('restoreCard'));
+document.getElementById('showCreateLink').addEventListener('click', () => showLoginPanel('createCard'));
+document.getElementById('restoreSecretType').addEventListener('change', (e) => {
+    document.getElementById('restoreSecretLabel').textContent = e.target.value === 'coin' ? 'Recovery Coin' : 'Original Passphrase';
+});
+document.getElementById('restoreForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const errEl = document.getElementById('restoreError'); errEl.textContent = '';
+    const fileInput = document.getElementById('restoreFileInput');
+    const secretType = document.getElementById('restoreSecretType').value;
+    const secret = document.getElementById('restoreSecret').value;
+    const newPass = document.getElementById('restoreNewPass').value;
+    if (!fileInput.files[0]) { errEl.textContent = 'Choose a .bizvault file.'; return; }
+    if (!secret || !newPass) { errEl.textContent = 'Fill in all fields.'; return; }
+    try {
+        const bytes = new Uint8Array(await fileInput.files[0].arrayBuffer());
+        const recovered = await restoreMasterKeyFromFile(bytes, secret, secretType);
+        const pWrap = await wrapMasterKey(recovered.masterKeyRaw, newPass);
+        account = {
+            ownerId: recovered.ownerId, ownerName: recovered.ownerName, createdAt: recovered.createdAt,
+            passphraseSalt: bufToB64(pWrap.salt), passphraseWrapIv: bufToB64(pWrap.iv), passphraseWrappedKey: bufToB64(pWrap.wrapped),
+            coinSalt: recovered.coinSalt, coinWrapIv: recovered.coinWrapIv, coinWrappedKey: recovered.coinWrappedKey,
+            failedAttempts: 0, locked: false, lockoutAt: null
+        };
+        saveAccount();
+        await enterSessionWithMasterKey(recovered.masterKeyRaw);
+        enterApp();
+    } catch (err) {
+        errEl.textContent = 'Could not restore: ' + err.message + ' (wrong secret, or a file from a different vault?)';
+    }
+});
+
+// --- normal login ---
+document.getElementById('loginForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const errEl = document.getElementById('loginError'); errEl.textContent = '';
+    const pass = document.getElementById('loginPass').value;
+    try {
+        await loginWithPassphrase(pass);
+        enterApp();
+    } catch (err) {
+        if (err.message === 'LOCKED') { showLoginPanel('lockedCard'); return; }
+        errEl.textContent = err.message;
+        if (account.failedAttempts >= 10) {
+            document.getElementById('attemptsIndicator').innerHTML = `<span class="attempts-pill">⚠ ${account.failedAttempts}/20 attempts used</span>`;
+        }
+    }
+});
+document.getElementById('showRecoverLink').addEventListener('click', () => showLoginPanel('recoverCard'));
+document.getElementById('backToLoginLink').addEventListener('click', () => showLoginPanel('loginCard'));
+
+// --- voluntary coin recovery ---
+document.getElementById('recoverForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const errEl = document.getElementById('recoverError'); errEl.textContent = '';
+    const coin = document.getElementById('recoverCoinInput').value;
+    try {
+        pendingRecoveredMasterKeyRaw = await recoverWithCoin(coin);
+        showLoginPanel('newPassCard');
+    } catch {
+        errEl.textContent = 'That recovery coin does not match this vault.';
+    }
+});
+
+// --- forced coin recovery after lockout ---
+document.getElementById('lockedForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const errEl = document.getElementById('lockedError'); errEl.textContent = '';
+    const coin = document.getElementById('lockedCoinInput').value;
+    try {
+        pendingRecoveredMasterKeyRaw = await recoverWithCoin(coin);
+        showLoginPanel('newPassCard');
+    } catch {
+        errEl.textContent = 'That recovery coin does not match this vault.';
+    }
+});
+
+// --- set new passphrase after either recovery path ---
+document.getElementById('newPassForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const errEl = document.getElementById('newPassError'); errEl.textContent = '';
+    const newPass = document.getElementById('newPassInput').value;
+    if (!newPass) { errEl.textContent = 'Enter a new passphrase.'; return; }
+    try {
+        await finishSettingNewPassphrase(newPass, pendingRecoveredMasterKeyRaw);
+        pendingRecoveredMasterKeyRaw = null;
+        enterApp();
+    } catch (err) {
+        errEl.textContent = 'Could not save new passphrase: ' + err.message;
+    }
+});
+
+// --- coin display modal (shared by account creation) ---
+function openCoinModal(coinString, onContinue) {
+    const modal = document.getElementById('coinModal');
+    const textEl = document.getElementById('coinDisplayText');
+    const eyeBtn = document.getElementById('eyeCoinDisplay');
+    const checkbox = document.getElementById('coinSavedCheckbox');
+    const continueBtn = document.getElementById('coinModalContinueBtn');
+    let revealed = false;
+    function render() { textEl.textContent = revealed ? coinString : '•'.repeat(coinString.length); eyeBtn.textContent = revealed ? '🙈' : '👁'; }
+    eyeBtn.onclick = () => { revealed = !revealed; render(); };
+    checkbox.checked = false;
+    continueBtn.disabled = true;
+    checkbox.onchange = () => { continueBtn.disabled = !checkbox.checked; };
+    document.getElementById('downloadCoinBtn').onclick = () => {
+        const blob = new Blob([`Enterprise Business Vault — Recovery Coin\nOwner: ${account.ownerName}\nCreated: ${account.createdAt}\n\n${coinString}\n\nKeep this offline and secure. Anyone with this coin can unlock the vault.`], { type: 'text/plain' });
+        const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'EnterpriseBusinessVault-RecoveryCoin.txt'; a.click();
+    };
+    continueBtn.onclick = () => { modal.classList.remove('open'); onContinue(); };
+    revealed = true; render(); // shown by default the one time it matters; user can hide it with the eye if others are nearby
+    modal.classList.add('open');
+}
+
+// =====================================================================
+// ENTER APP
+// =====================================================================
+function enterApp() {
+    document.getElementById('loginScreen').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+    document.getElementById('operatorBadge').textContent = 'Signed in';
+    document.getElementById('ownerHeaderName').textContent = account.ownerName;
+    document.getElementById('identityOperator').textContent = account.ownerName;
+    document.getElementById('identitySessionStart').textContent = sessionStart.toLocaleString();
+    startClock();
+    loadBusinessInfo();
+    startFreshnessScheduler();
+    renderRegistry();
+    renderManifest();
+    wireAdminMode();
+}
+
+// ---------------- tabs ----------------
+document.querySelectorAll('.tab-btn[data-tab]').forEach(btn => {
+    btn.addEventListener('click', () => {
+        document.querySelectorAll('.tab-btn[data-tab]').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        btn.classList.add('active');
+        document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+    });
+});
+
+// ---------------- real live clock ----------------
+function startClock() {
+    function tick() {
+        const mode = document.getElementById('timezoneMode').value;
+        const now = new Date();
+        document.getElementById('liveClock').textContent = mode === 'utc' ? now.toUTCString() : now.toLocaleString();
+    }
+    tick();
+    setInterval(tick, 1000);
+    document.getElementById('timezoneMode').addEventListener('change', tick);
+}
+
+// ---------------- Business Suite: real localStorage persistence ----------------
+const BUSINESS_KEY = 'bizVaultBusinessInfo_v1';
+function loadBusinessInfo() {
+    let info = {};
+    try { info = JSON.parse(localStorage.getItem(BUSINESS_KEY) || '{}'); } catch { info = {}; }
+    document.getElementById('busEntityName').value = info.entityName || '';
+    document.getElementById('busTaxId').value = info.taxId || '';
+    document.getElementById('busFormat').value = info.format || '';
+    document.getElementById('busNotes').value = info.notes || '';
+    ['busEntityName', 'busTaxId', 'busFormat', 'busNotes'].forEach(id => {
+        document.getElementById(id).addEventListener('input', saveBusinessInfo);
+    });
+    wireEye('eyeBusTaxId', 'busTaxId');
+}
+function saveBusinessInfo() {
+    const info = {
+        entityName: document.getElementById('busEntityName').value,
+        taxId: document.getElementById('busTaxId').value,
+        format: document.getElementById('busFormat').value,
+        notes: document.getElementById('busNotes').value,
+    };
+    localStorage.setItem(BUSINESS_KEY, JSON.stringify(info));
+    const readBack = JSON.parse(localStorage.getItem(BUSINESS_KEY));
+    const ok = JSON.stringify(readBack) === JSON.stringify(info);
+    document.getElementById('businessSaveStatus').textContent = ok
+        ? `Saved to this browser's local storage (verified) at ${new Date().toLocaleTimeString()}.`
+        : 'Save could not be verified — check browser storage permissions.';
+}
+
+// ---------------- File System & Vault ----------------
+const App = { assets: [], activeIdx: null, fsDirHandle: null };
+
+document.getElementById('chooseStorageBtn').addEventListener('click', async () => {
+    if (!('showDirectoryPicker' in window)) { log('fileLog', 'Folder selection needs a Chromium-based browser (Chrome/Edge).', 'crimson'); return; }
+    try {
+        App.fsDirHandle = await window.showDirectoryPicker({ mode: 'readwrite' });
+        document.getElementById('chooseStorageBtn').textContent = `📁 ${App.fsDirHandle.name}`;
+        log('fileLog', `Storage location set to "${App.fsDirHandle.name}". Vault files will be written straight there.`);
+    } catch (err) {
+        if (err.name !== 'AbortError') log('fileLog', `Could not set storage location: ${err.message}`, 'crimson');
+    }
+});
+
+function guessKind(name) {
+    if (/\.(png|jpe?g|gif|webp)$/i.test(name)) return 'Image';
+    if (/\.(mp4|webm|ogv)$/i.test(name)) return 'Video';
+    if (/\.(mp3|wav|ogg|m4a)$/i.test(name)) return 'Audio';
+    if (/\.pdf$/i.test(name)) return 'PDF';
+    return 'File';
+}
+
+document.getElementById('localFileInput').addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const bytes = new Uint8Array(await file.arrayBuffer());
+    App.assets.push({
+        name: file.name, size: bytes.length, kind: guessKind(file.name), raw: bytes,
+        isEncrypted: false, status: 'plain', createdAt: new Date(), lastVerifiedAt: null, storedCrc: null
+    });
+    log('fileLog', `Loaded ${file.name} (${bytes.length} bytes) — not yet encoded.`);
+    renderRegistry(); renderManifest();
+});
+
+document.getElementById('vaultFileInput').addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const bytes = new Uint8Array(await file.arrayBuffer());
+    try {
+        const result = await decodeAsset(bytes);
+        if (!result.crcOk) throw new Error('Decrypted, but CRC32 mismatch — file may be corrupt.');
+        App.assets.push({
+            name: result.name, size: result.fileBytes.length, kind: guessKind(result.name), raw: result.fileBytes,
+            isEncrypted: true, status: 'verified', createdAt: new Date(), lastVerifiedAt: new Date(), storedCrc: result.storedCrc,
+            encodedBytes: bytes
+        });
+        log('fileLog', `Decoded ${result.name} — AES-GCM auth tag valid, CRC32 verified.`);
+    } catch (err) {
+        log('fileLog', `Failed to decode ${file.name}: ${err.message}`, 'crimson');
+    }
+    renderRegistry(); renderManifest();
+});
+
+function renderRegistry() {
+    const list = document.getElementById('fileRegistryList');
+    list.innerHTML = '';
+    if (App.assets.length === 0) {
+        list.innerHTML = `<li style="padding:15px; color:var(--text-dim); text-align:center;">No files yet.</li>`;
+        return;
+    }
+    App.assets.forEach((a, idx) => {
+        const li = document.createElement('li');
+        li.className = 'file-item-row';
+        const pillClass = a.status === 'plain' ? 'plain' : a.status === 'verified' ? 'verified' : a.status === 'stale' ? 'stale' : 'error';
+        li.innerHTML = `<div><strong>${a.name}</strong><br><span style="font-size:0.75rem; color:var(--text-dim);">${a.size.toLocaleString()} bytes · ${a.kind}</span></div><span class="status-pill ${pillClass}">${a.status}</span>`;
+        li.addEventListener('click', () => { App.activeIdx = idx; renderPreview(a); });
+        list.appendChild(li);
+    });
+}
+
+function renderPreview(asset) {
+    const stage = document.getElementById('fileViewerStage');
+    stage.innerHTML = '';
+    const blob = new Blob([asset.raw]);
+    const url = URL.createObjectURL(blob);
+    if (asset.kind === 'Image') { const img = document.createElement('img'); img.src = url; stage.appendChild(img); }
+    else if (asset.kind === 'Video') { const v = document.createElement('video'); v.src = url; v.controls = true; stage.appendChild(v); }
+    else if (asset.kind === 'Audio') { const au = document.createElement('audio'); au.src = url; au.controls = true; stage.appendChild(au); }
+    else if (asset.kind === 'PDF') { const ifr = document.createElement('iframe'); ifr.src = url; ifr.style.cssText = 'width:100%;height:280px;border:none;'; stage.appendChild(ifr); }
+    else {
+        let text; try { text = new TextDecoder('utf-8', { fatal: true }).decode(asset.raw.slice(0, 2000)); }
+        catch { text = `[binary data — ${asset.raw.length} bytes]`; }
+        const pre = document.createElement('pre'); pre.style.cssText = 'text-align:left; white-space:pre-wrap; font-size:0.8rem; width:100%;'; pre.textContent = text;
+        stage.appendChild(pre);
+    }
+}
+
+document.getElementById('encodeSelectedBtn').addEventListener('click', async () => {
+    if (App.activeIdx === null) { log('fileLog', 'Select a file in the registry first.', 'crimson'); return; }
+    const asset = App.assets[App.activeIdx];
+    if (asset.isEncrypted) { log('fileLog', `${asset.name} is already an encrypted vault entry.`, 'crimson'); return; }
+
+    const encoded = await encodeAsset(asset.raw, asset.name);
+    const verify = await decodeAsset(encoded);
+    const roundTripOk = verify.crcOk && verify.fileBytes.length === asset.raw.length && verify.fileBytes.every((b, i) => b === asset.raw[i]);
+    if (!roundTripOk) { log('fileLog', `Encoding ${asset.name} failed its own round-trip check — not saved.`, 'crimson'); return; }
+
+    const outName = asset.name + '.bizvault';
+    try {
+        if (App.fsDirHandle) {
+            const fh = await App.fsDirHandle.getFileHandle(outName, { create: true });
+            const w = await fh.createWritable();
+            await w.write(encoded); await w.close();
+            log('fileLog', `Saved ${outName} to "${App.fsDirHandle.name}".`);
+        } else if ('showSaveFilePicker' in window) {
+            const handle = await window.showSaveFilePicker({ suggestedName: outName });
+            const w = await handle.createWritable();
+            await w.write(encoded); await w.close();
+            log('fileLog', `Saved ${outName} to the location you chose.`);
+        } else {
+            const blob = new Blob([encoded]);
+            const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = outName; a.click();
+            log('fileLog', `Downloaded ${outName}.`);
+        }
+    } catch (err) {
+        if (err.name === 'AbortError') { log('fileLog', 'Save cancelled.'); return; }
+        log('fileLog', `Save failed: ${err.message}`, 'crimson'); return;
+    }
+
+    asset.isEncrypted = true;
+    asset.status = 'verified';
+    asset.storedCrc = crc32(asset.raw);
+    asset.lastVerifiedAt = new Date();
+    asset.encodedBytes = encoded;
+    renderRegistry(); renderManifest();
+});
+
+// ---------------- Data Map / Manifest ----------------
+function hoursSince(date) { return (Date.now() - date.getTime()) / 3600000; }
+
+function renderManifest() {
+    const tbody = document.getElementById('manifestBody');
+    tbody.innerHTML = '';
+    const threshold = parseFloat(document.getElementById('thresholdHours')?.value) || 24;
+    App.assets.forEach(a => {
+        const tr = document.createElement('tr');
+        const freshness = !a.isEncrypted ? '—'
+            : (hoursSince(a.lastVerifiedAt) < threshold ? `Fresh (${hoursSince(a.lastVerifiedAt).toFixed(1)}h ago)` : `Needs Refresh (${hoursSince(a.lastVerifiedAt).toFixed(1)}h ago)`);
+        tr.innerHTML = `<td>${a.name}</td><td>${a.size.toLocaleString()} B</td><td>${a.status}</td><td>${a.createdAt.toLocaleString()}</td><td>${a.lastVerifiedAt ? a.lastVerifiedAt.toLocaleString() : '—'}</td><td>${freshness}</td>`;
+        tbody.appendChild(tr);
+    });
+}
+
+// ---------------- Freshness & Integrity cycle ----------------
+let freshnessModalShown = false;
+
+async function runFreshnessCycle(manual) {
+    const threshold = parseFloat(document.getElementById('thresholdHours').value) || 24;
+    const encryptedAssets = App.assets.filter(a => a.isEncrypted);
+    if (encryptedAssets.length === 0) { log('freshnessLog', 'No encrypted assets to check yet.'); return; }
+
+    let overdueBefore = encryptedAssets.filter(a => hoursSince(a.lastVerifiedAt) >= threshold);
+    const toProcess = manual ? encryptedAssets : overdueBefore;
+    if (toProcess.length === 0) { if (manual) log('freshnessLog', 'All assets are within the freshness threshold — nothing to refresh.'); return; }
+
+    for (const asset of toProcess) {
+        try {
+            log('freshnessLog', `Extracting ${asset.name} for verification...`);
+            const decoded = await decodeAsset(asset.encodedBytes); // real decrypt (GCM tag checked here)
+            if (!decoded.crcOk) throw new Error('CRC32 mismatch after decrypt.');
+            log('freshnessLog', `  → checked: AES-GCM tag valid, CRC32 ${decoded.actualCrc.toString(16)} matches stored value.`);
+
+            const reEncoded = await encodeAsset(decoded.fileBytes, decoded.name); // fresh IV + fresh embedded key-wrap copies
+            if (App.fsDirHandle) {
+                const fh = await App.fsDirHandle.getFileHandle(asset.name + '.bizvault', { create: true });
+                const w = await fh.createWritable(); await w.write(reEncoded); await w.close();
+                log('freshnessLog', `  → cold-stored again: rewritten to "${App.fsDirHandle.name}" with a fresh IV and refreshed key-recovery data.`);
+            } else {
+                log('freshnessLog', `  → cold-stored again in memory with a fresh IV (no storage folder chosen, so nothing was written to disk this cycle).`);
+            }
+            asset.encodedBytes = reEncoded;
+            asset.status = 'verified';
+            asset.lastVerifiedAt = new Date();
+        } catch (err) {
+            asset.status = 'error';
+            log('freshnessLog', `Freshness check failed for ${asset.name}: ${err.message}`, 'crimson');
+        }
+    }
+    renderRegistry(); renderManifest();
+}
+
+document.getElementById('runFreshnessNowBtn').addEventListener('click', () => runFreshnessCycle(true));
+document.getElementById('modalRunNowBtn').addEventListener('click', () => { runFreshnessCycle(true); closeFreshnessModal(); });
+document.getElementById('modalDismissBtn').addEventListener('click', closeFreshnessModal);
+function closeFreshnessModal() { document.getElementById('freshnessModal').classList.remove('open'); }
+
+function startFreshnessScheduler() {
+    function scan() {
+        const threshold = parseFloat(document.getElementById('thresholdHours').value) || 24;
+        const overdue = App.assets.filter(a => a.isEncrypted && hoursSince(a.lastVerifiedAt) >= threshold);
+        if (overdue.length > 0) {
+            runFreshnessCycle(false);
+            if (!freshnessModalShown) {
+                document.getElementById('freshnessModalText').textContent =
+                    `${overdue.length} file(s) had gone longer than the ${threshold}-hour freshness threshold since their last check. They've just been re-verified and cold-stored again.`;
+                document.getElementById('freshnessModal').classList.add('open');
+                freshnessModalShown = true;
+                setTimeout(() => { freshnessModalShown = false; }, 60000);
+            }
+        }
+        renderManifest();
+    }
+    const intervalSeconds = () => Math.max(5, parseFloat(document.getElementById('scanIntervalSeconds').value) || 30);
+    let handle = setInterval(scan, intervalSeconds() * 1000);
+    document.getElementById('scanIntervalSeconds').addEventListener('change', () => {
+        clearInterval(handle);
+        handle = setInterval(scan, intervalSeconds() * 1000);
+    });
+    scan();
+}
+
+// ---------------- Remote endpoint (real fetch, real result) ----------------
+document.getElementById('remoteTestBtn').addEventListener('click', async () => {
+    const url = document.getElementById('remoteUrl').value.trim();
+    const method = document.getElementById('remoteMethod').value;
+    if (!url) { log('remoteResult', 'Enter a real endpoint URL first.', 'crimson'); return; }
+    log('remoteResult', `Sending real ${method} request to ${url} ...`);
+    try {
+        const resp = await fetch(url, {
+            method,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ test: true, from: 'Enterprise Business Vault', timestamp: new Date().toISOString() })
+        });
+        const text = await resp.text().catch(() => '');
+        log('remoteResult', `Response: HTTP ${resp.status} ${resp.statusText}. Body (truncated): ${text.slice(0, 300)}`, resp.ok ? 'seagreen' : 'crimson');
+    } catch (err) {
+        log('remoteResult', `Real request failed: ${err.message} (often a CORS restriction on the endpoint, or it doesn't exist).`, 'crimson');
+    }
+});
+
+// =====================================================================
+// ADMIN MODE
+// =====================================================================
+function wireAdminMode() {
+    document.getElementById('adminToggleBtn').addEventListener('click', openAdminAuthModal);
+    document.getElementById('adminTabEnterBtn').addEventListener('click', openAdminAuthModal);
+    document.getElementById('codeTabEnterBtn').addEventListener('click', openAdminAuthModal);
+    document.getElementById('adminExitBtn').addEventListener('click', exitAdminMode);
+    document.getElementById('adminAuthCancelBtn').addEventListener('click', closeAdminAuthModal);
+    document.getElementById('adminAuthConfirmBtn').addEventListener('click', confirmAdminAuth);
+
+    document.getElementById('adminResetLockoutBtn').addEventListener('click', () => {
+        account.failedAttempts = 0; account.locked = false; account.lockoutAt = null;
+        saveAccount();
+        renderAdminPanel();
+        bumpAdminActivity();
+    });
+    document.getElementById('adminRegenCoinBtn').addEventListener('click', regenerateCoin);
+
+    let jsonRevealed = false;
+    document.getElementById('eyeAdminRawJson').addEventListener('click', () => {
+        jsonRevealed = !jsonRevealed;
+        const block = document.getElementById('adminRawJson');
+        block.style.display = jsonRevealed ? 'block' : 'none';
+        document.getElementById('eyeAdminRawJson').textContent = jsonRevealed ? '🙈 Hide' : '👁 Show';
+        if (jsonRevealed) block.textContent = JSON.stringify(account, null, 2);
+        bumpAdminActivity();
+    });
+
+    let ownerIdRevealed = false;
+    document.getElementById('eyeAdminOwnerId').addEventListener('click', () => {
+        ownerIdRevealed = !ownerIdRevealed;
+        document.getElementById('adminOwnerId').textContent = ownerIdRevealed ? account.ownerId : '•'.repeat(36);
+        document.getElementById('eyeAdminOwnerId').textContent = ownerIdRevealed ? '🙈' : '👁';
+        bumpAdminActivity();
+    });
+
+    document.getElementById('saveEditCopyBtn').addEventListener('click', () => {
+        const filename = `EnterpriseBusinessVault_edit.html`;
+        const content = document.getElementById('fullSourceCodeEditor').value;
+        const blob = new Blob([content], { type: 'text/html;charset=utf-8' });
+        const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = filename; a.click();
+        document.getElementById('saveEditStatus').textContent = `Downloaded ${filename}.`;
+        bumpAdminActivity();
+    });
+    document.getElementById('activateNewPageBtn').addEventListener('click', () => {
+        const content = document.getElementById('fullSourceCodeEditor').value;
+        const blob = new Blob([content], { type: 'text/html;charset=utf-8' });
+        window.open(URL.createObjectURL(blob), '_blank');
+        document.getElementById('saveEditStatus').textContent = 'Opened edited copy in a new tab.';
+        bumpAdminActivity();
+    });
+
+    // any click/keypress while in admin mode resets the 5-minute inactivity timer
+    ['click', 'keydown'].forEach(evt => document.addEventListener(evt, () => { if (adminMode) bumpAdminActivity(); }));
+}
+
+function openAdminAuthModal() {
+    document.getElementById('adminAuthError').textContent = '';
+    document.getElementById('adminAuthPass').value = '';
+    document.getElementById('adminAuthModal').classList.add('open');
+}
+function closeAdminAuthModal() { document.getElementById('adminAuthModal').classList.remove('open'); }
+
+async function confirmAdminAuth() {
+    const errEl = document.getElementById('adminAuthError');
+    const pass = document.getElementById('adminAuthPass').value;
+    errEl.textContent = '';
+    try {
+        const salt = b64ToBuf(account.passphraseSalt), iv = b64ToBuf(account.passphraseWrapIv), wrapped = b64ToBuf(account.passphraseWrappedKey);
+        await unwrapMasterKey(pass, salt, iv, wrapped); // re-verify the CURRENT passphrase; throws if wrong
+        closeAdminAuthModal();
+        enterAdminMode();
+    } catch {
+        errEl.textContent = 'Incorrect passphrase.';
+    }
+}
+
+function enterAdminMode() {
+    adminMode = true;
+    document.getElementById('adminBanner').classList.add('on');
+    document.getElementById('adminLockedPanel').style.display = 'none';
+    document.getElementById('adminUnlockedPanel').style.display = 'block';
+    document.getElementById('codeLockedPanel').style.display = 'none';
+    document.getElementById('codeUnlockedPanel').style.display = 'block';
+    document.getElementById('fullSourceCodeEditor').value = '<!DOCTYPE html>\n' + document.documentElement.outerHTML;
+    renderAdminPanel();
+    bumpAdminActivity();
+}
+
+function exitAdminMode() {
+    adminMode = false;
+    clearTimeout(adminModeTimer);
+    document.getElementById('adminBanner').classList.remove('on');
+    document.getElementById('adminLockedPanel').style.display = 'block';
+    document.getElementById('adminUnlockedPanel').style.display = 'none';
+    document.getElementById('codeLockedPanel').style.display = 'block';
+    document.getElementById('codeUnlockedPanel').style.display = 'none';
+    // if either admin tab was active, bounce back to a normal tab
+    ['tab-admin', 'tab-codeeditor'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el.classList.contains('active')) {
+            el.classList.remove('active');
+            document.querySelector('.tab-btn[data-tab="identity"]').click();
+        }
+    });
+}
+
+function bumpAdminActivity() {
+    clearTimeout(adminModeTimer);
+    adminModeTimer = setTimeout(exitAdminMode, 5 * 60 * 1000);
+}
+
+function renderAdminPanel() {
+    document.getElementById('adminOwnerName').textContent = account.ownerName;
+    document.getElementById('adminCreatedAt').textContent = new Date(account.createdAt).toLocaleString();
+    document.getElementById('adminFailedAttempts').textContent = `${account.failedAttempts || 0} / 20`;
+    document.getElementById('adminRawJson').textContent = JSON.stringify(account, null, 2);
+}
+
+async function regenerateCoin() {
+    if (!confirm('Generate a brand new recovery coin? The old coin will stop working for future account-level recovery (already-saved files keep the old coin embedded until their next Freshness cycle).')) return;
+    const salt = b64ToBuf(account.passphraseSalt); // not used directly; we need the live master key, which sessionKey already holds in non-extractable form.
+    // We can't export a non-extractable CryptoKey, so re-derive the master key raw bytes via the passphrase wrap the same way a normal login would,
+    // by asking for the passphrase again inside this action for safety.
+    const pass = prompt('Re-enter your passphrase to authorize generating a new recovery coin:');
+    if (!pass) return;
+    try {
+        const pSalt = b64ToBuf(account.passphraseSalt), pIv = b64ToBuf(account.passphraseWrapIv), pWrapped = b64ToBuf(account.passphraseWrappedKey);
+        const masterKeyRaw = await unwrapMasterKey(pass, pSalt, pIv, pWrapped);
+        const coinBytes = crypto.getRandomValues(new Uint8Array(20));
+        const coinString = formatCoin(coinBytes);
+        const cWrap = await wrapMasterKey(masterKeyRaw, normalizeCoin(coinString));
+        account.coinSalt = bufToB64(cWrap.salt); account.coinWrapIv = bufToB64(cWrap.iv); account.coinWrappedKey = bufToB64(cWrap.wrapped);
+        saveAccount();
+        renderAdminPanel();
+        openRegenCoinModal(coinString);
+    } catch {
+        alert('Incorrect passphrase — coin not regenerated.');
+    }
+    bumpAdminActivity();
+}
+
+function openRegenCoinModal(coinString) {
+    const modal = document.getElementById('regenCoinModal');
+    const textEl = document.getElementById('regenCoinDisplayText');
+    const eyeBtn = document.getElementById('eyeRegenCoinDisplay');
+    let revealed = true;
+    function render() { textEl.textContent = revealed ? coinString : '•'.repeat(coinString.length); eyeBtn.textContent = revealed ? '🙈' : '👁'; }
+    eyeBtn.onclick = () => { revealed = !revealed; render(); };
+    document.getElementById('downloadRegenCoinBtn').onclick = () => {
+        const blob = new Blob([`Enterprise Business Vault — New Recovery Coin\nOwner: ${account.ownerName}\nRegenerated: ${new Date().toISOString()}\n\n${coinString}\n\nKeep this offline and secure.`], { type: 'text/plain' });
+        const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'EnterpriseBusinessVault-NewRecoveryCoin.txt'; a.click();
+    };
+    document.getElementById('regenCoinCloseBtn').onclick = () => modal.classList.remove('open');
+    render();
+    modal.classList.add('open');
+}
+
+// ---------------- boot ----------------
+initLoginScreen();
+</script>
+</body>
+</html>
