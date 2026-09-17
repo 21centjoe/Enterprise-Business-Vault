@@ -74,7 +74,7 @@ Enterprise Business Vault Copyright 2026 Joseph La Follette  AGPL
 
 Contact 21centjoe@gmail.com for corporate licensing rates.
 #geometric file saving
-
+*********************************************************************************
 Here's the rewritten index.html (JS syntax verified). What's new, in plain terms:
 
 Master Key architecture — one random key actually encrypts your files. It's wrapped two independent ways: once by your passphrase, once by a recovery coin. Either unlocks it; neither is ever stored in the clear.
