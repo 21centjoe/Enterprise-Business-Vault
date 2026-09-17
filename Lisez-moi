@@ -1,0 +1,55 @@
+Coffre-fort d'entreprise
+#Conserve les fichiers à la fois dans le stockage à froid et dans le cloud. ##Avec actualisation géométrique des fichiers hors ligne et auto-réparatrice.
+
+Enterprise Business Vault est un coffre-fort numérique sécurisé côté client, intégrant un gestionnaire d'actifs cryptographiques et intégré dans un seul fichier HTML autonome. Il offre un chiffrement local de type « zéro confiance », une vérification robuste de l'intégrité des fichiers, des cycles de nettoyage automatisés et une intégration directe au système de fichiers via les API des navigateurs modernes.
+
+🔑 Fonctionnalités clés
+Chiffrement côté client Zero Trust
+
+Construit sur l' API Web Crypto native du navigateur .
+Utilise AES-256-GCM pour le chiffrement authentifié.
+Génération de clés via PBKDF2 (250 000 itérations avec SHA-256). Les phrases de passe ne sont jamais stockées ni transmises ; seul un hachage de vérification salé est conservé localement pour authentifier les sessions ultérieures.
+.bizvaultFormat de fichier personnalisé
+
+Emballage binaire propriétaire contenant des octets magiques ( BIZV), des vecteurs d'initialisation cryptographiques (IV) et des textes chiffrés authentifiés.
+Préserve les noms de fichiers d'origine, les tailles de fichiers et les sommes de contrôle CRC32 afin d'éviter toute corruption silencieuse des données.
+Cycle de vérification de la fraîcheur et de l'intégrité
+
+Des analyses périodiques ou manuelles en arrière-plan déchiffrent les ressources, recalculent les sommes de contrôle CRC32 en clair, vérifient les étiquettes d'authentification et rechiffrent les fichiers avec de nouveaux vecteurs d'initialisation (stockage à froid). Les propriétés d'auto-réparation de la structure CRC32 nettoient et réparent les données sans intervention hors ligne de tiers ni application cloud.
+Seuil de fraîcheur et intervalles d'analyse en arrière-plan configurables.
+Suite d'entreprise
+
+Stockez et gérez les informations relatives à l'entité commerciale (raison sociale, numéro d'identification fiscale, libellés de format, notes) de manière sécurisée dans le stockage local du navigateur.
+Stockage avancé et points de terminaison distants
+
+S'intègre à l'API d'accès au système de fichiers ( showDirectoryPicker) pour un accès direct en lecture/écriture aux répertoires.
+Outil intégré de test de point de terminaison distant pour l'envoi de charges utiles HTTP PUT/POST à ​​des serveurs personnalisés, des webhooks ou des URL pré-signées S3.
+Inspecteur et éditeur de code auto-hébergé
+
+Inspecteur de code source intégré permettant aux opérateurs d'inspecter, de modifier, de télécharger ou de lancer des versions mises à jour de l'application sous forme de nouvel onglet dynamique directement depuis l'interface utilisateur.
+Pile technologique 🛠️
+HTML5 et CSS3 : Conteneur réactif à fichier unique avec variables système de conception claire/sombre intégrées et animations personnalisées.
+JavaScript pur (modules ES6) : aucune étape de compilation externe, aucun outil de regroupement ni aucune dépendance npm importante ne sont requis.
+API Web Crypto : Primitives cryptographiques hautes performances, supportées par le matériel ( crypto.subtle).
+🚀 Premiers pas
+Prérequis
+L'application utilisant l' API Web Crypto du navigateur , elle requiert un contexte sécurisé (HTTPS ou HTTPS localhost). L'ouverture du fichier via file://ces protocoles peut, dans certains navigateurs, restreindre les fonctionnalités cryptographiques.
+
+Démarrage rapide
+Enregistrez le code de l'application sous forme de fichier HTML (par exemple, vault.html).
+Ouvrez le fichier dans un navigateur moderne basé sur Chromium (Chrome, Edge, Brave, etc.).
+Se connecter :
+Lors de votre première visite, saisissez un nom d'opérateur et une phrase secrète sécurisée pour initialiser votre compte local.
+Remarque : Si vous oubliez votre phrase de passe, les fichiers chiffrés ne pourront pas être récupérés car il n'existe aucune porte dérobée côté serveur.
+Choisir l'emplacement de stockage : Cliquez sur 📁 Choisir l'emplacement de stockage pour sélectionner un répertoire local où .bizvaultles fichiers seront enregistrés.
+Charger et encoder : Accédez à l’ onglet Système de fichiers et coffre-fort pour charger des fichiers bruts, les prévisualiser et les encoder en .bizvaultressources sécurisées.
+🔒 Spécification du format de fichier ( .bizvault)
+La .bizvaultstructure binaire est assemblée comme suit :
+
+####ATTENTION ! Première utilisation de ce navigateur : la saisie d’un nom et d’une phrase secrète ici crée votre compte opérateur. La phrase secrète n’est jamais stockée ; seul un hachage de vérification salé est conservé et utilisé en temps réel (jamais enregistré) pour générer votre véritable clé de chiffrement AES-256-GCM pour cette session. Si vous l’oubliez, les fichiers chiffrés seront irrécupérables : il n’existe aucune porte dérobée. Veuillez noter votre phrase secrète.
+
+##NE JAMAIS PARTAGER NI STOCKER VOTRE PHRASE DE PASSE SANS AVOIR UNE CONFIANCE TOTALE !
+
+Enterprise Business Vault © 2026 Joseph La Follette – TOUS DROITS RÉSERVÉS
+
+Contactez 21centjoe@gmail.com pour connaître les tarifs de licences pour entreprises.
