@@ -73,3 +73,20 @@ Enterprise Business Vault Copyright 2026 Joseph La Follette --ALL RIGHTS RESERVE
 
 Contact 21centjoe@gmail.com for corporate licensing rates.
 
+Here's the rewritten index.html (JS syntax verified). What's new, in plain terms:
+
+Master Key architecture — one random key actually encrypts your files. It's wrapped two independent ways: once by your passphrase, once by a recovery coin. Either unlocks it; neither is ever stored in the clear.
+
+Files are now fully self-contained — every .bizvault file embeds fresh copies of both wrapped-key blocks. If this browser's storage gets wiped entirely, "Restore an existing vault from a .bizvault file" on the login screen rebuilds your account from that one file, using either your passphrase or the coin.
+
+Owner identity — set once at creation, immutable, bound cryptographically into every file via AES-GCM's authenticated-data field, and shown persistently in the header, not just at login.
+
+20-attempt lockout — a warning pill appears past 10 failed tries; at 20 the vault locks and only the recovery coin (never the passphrase) can reopen it, forcing a new passphrase afterward. I flagged in the code comments that this is a UI-level deterrent, not protection against someone with full local file access — worth remembering.
+
+Admin Mode — a re-auth (passphrase) unlocks Owner Identity, lockout reset, coin regeneration, the raw account JSON, and the Code Inspector — all otherwise hidden. Auto-exits after 5 minutes idle, with a visible banner while active.
+
+Eye icons — on passphrase fields, the Tax ID field, the coin displays, the Owner ID, and the raw JSON block, each independently toggleable, always defaulting to hidden on reload.
+
+Copyright — updated to Copyright (C) 2026 Joseph La Follette. ALL RIGHTS RESERVED. throughout.
+
+One thing I couldn't do: I only have the pasted file content, not push access to your actual GitHub repo, so I can't update the LICENSE file or README there directly. For consistency you'll want to manually replace the AGPL-3.0 LICENSE text with a proprietary notice and drop the "AGPL-3.0 license" badge from the README, per what we discussed earlier — otherwise the repo will still visibly claim an open-source license that contradicts this file's own header.
