@@ -1,0 +1,55 @@
+Bóveda empresarial
+#Mantiene los archivos tanto en almacenamiento en frío como en la nube. ##Con actualización geométrica de archivos autorreparable sin conexión.
+
+Enterprise Business Vault es una bóveda segura de documentos empresariales y un gestor de activos criptográficos del lado del cliente, todo ello integrado en un único archivo HTML autónomo. Ofrece cifrado local de confianza cero, una sólida verificación de la integridad de los archivos, ciclos automatizados de actualización y la integración directa con el sistema de archivos mediante las API de los navegadores modernos.
+
+🔑 Características principales
+Cifrado del lado del cliente de confianza cero
+
+Desarrollado sobre la API Web Crypto nativa del navegador .
+Utiliza AES-256-GCM para el cifrado autenticado.
+Derivación de claves mediante PBKDF2 (250 000 iteraciones con SHA-256). Las contraseñas nunca se almacenan ni se transmiten; solo se guarda localmente un hash de verificación con sal para autenticar futuras sesiones.
+.bizvaultFormato de archivo personalizado
+
+Empaquetado binario propietario que contiene bytes mágicos ( BIZV), vectores de inicialización criptográfica (IV) y textos cifrados autenticados.
+Conserva los nombres de archivo originales, los tamaños de archivo y las sumas de comprobación CRC32 para evitar la corrupción silenciosa de los datos.
+Ciclo de verificación de frescura e integridad
+
+Escaneos periódicos o manuales en segundo plano que descifran los activos, recalculan las sumas de verificación CRC32 en texto plano, verifican las etiquetas de autenticación y vuelven a cifrar los archivos con vectores de inicialización (IV) actualizados (almacenamiento en frío). Las propiedades de autorreparación de la estructura CRC32 limpian y reparan los datos sin necesidad de análisis externos fuera de línea ni aplicaciones en la nube.
+Umbrales de frescura e intervalos de escaneo en segundo plano configurables.
+Suite empresarial
+
+Almacene y gestione los detalles de la entidad comercial (nombre legal, número de identificación fiscal, etiquetas de formato, notas) de forma segura en el almacenamiento local del navegador.
+Almacenamiento avanzado y puntos finales remotos
+
+Se integra con la API de acceso al sistema de archivos ( showDirectoryPicker) para el acceso directo de lectura/escritura de directorios.
+Herramienta integrada de prueba de puntos finales remotos para enviar cargas útiles HTTP PUT/POST a servidores personalizados, webhooks o URL pre-firmadas de S3.
+Inspector y editor de código autoalojado
+
+Inspector de código fuente integrado que permite a los operadores inspeccionar, editar, descargar o ejecutar versiones actualizadas de la aplicación como una nueva pestaña en vivo directamente desde la interfaz de usuario.
+🛠️ Pila tecnológica
+HTML5 y CSS3 : Contenedor de un solo archivo adaptable con variables de sistema de diseño oscuro/claro integradas y animaciones personalizadas.
+JavaScript puro (módulos ES6) : No se requieren pasos de compilación externos, empaquetadores ni dependencias npm complejas.
+API de criptografía web : primitivas criptográficas de alto rendimiento respaldadas por hardware ( crypto.subtle).
+🚀 Primeros pasos
+Requisitos previos
+Dado que la aplicación utiliza la API Web Crypto del navegador , requiere un contexto seguro (HTTPS olocalhost ). Abrir el archivo mediante file://protocolos en algunos navegadores puede restringir las funciones criptográficas.
+
+Inicio rápido
+Guarda el código de la aplicación como un archivo HTML (por ejemplo, vault.html).
+Abra el archivo en un navegador moderno basado en Chromium (Chrome, Edge, Brave, etc.).
+Iniciar sesión :
+En su primera visita, introduzca un nombre de operador y una contraseña segura para inicializar su cuenta local.
+Nota: Si olvida su contraseña, los archivos cifrados no se podrán recuperar, ya que no existe una puerta trasera en el sistema.
+Seleccionar almacenamiento : Haga clic en 📁 Seleccionar ubicación de almacenamiento para elegir un directorio local donde.bizvault se guardarán los archivos.
+Cargar y codificar : Navegue a la pestaña Sistema de archivos y bóveda para cargar archivos sin formato, previsualizarlos y codificarlos para convertirlos en .bizvaultrecursos seguros.
+🔒 Especificación del formato de archivo ( .bizvault)
+La.bizvault estructura binaria se ensambla de la siguiente manera:
+
+####¡ADVERTENCIA! Es la primera vez que usa este navegador: al ingresar su nombre y contraseña, se crea su cuenta de operador. La contraseña nunca se almacena en ningún lugar; solo se genera un hash de verificación con sal, que se utiliza en tiempo real (nunca se guarda) para derivar su clave de cifrado AES-256-GCM real para esta sesión. Si la olvida, no podrá recuperar los archivos que haya cifrado; no existe ninguna puerta trasera. Anote su contraseña.
+
+##¡NUNCA COMPARTA NI ALMACENE SU CONTRASEÑA SIN CONFIANZA TOTAL!
+
+Enterprise Business Vault Copyright 2026 Joseph La Follette --TODOS LOS DERECHOS RESERVADOS
+
+Para conocer las tarifas de licencias corporativas, póngase en contacto con 21centjoe@gmail.com .
